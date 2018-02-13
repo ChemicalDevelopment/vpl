@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 
 import math
+import random
 
 class CoolChannelOffset(VPL):
 
@@ -180,6 +181,106 @@ class RainbowCrazy(VPL):
         res_image = cv2.cvtColor(hls_image, cv2.COLOR_HLS2BGR)
 
         return res_image, data
+
+class Scanlines(VPL):
+
+    def process(self, pipe, image, data):
+
+        h, w, d = image.shape
+
+        res = np.zeros(image.shape, dtype=image.dtype)
+
+        if not hasattr(self, "ct"):
+            self.ct = 0
+
+        rnd_prd = random.random() * self.get("randomness", 0.0)
+
+        for i in range(h):
+            prd = rnd_prd + self.ct * self.get("speed", .8) / 60.0 + i * self.get("frequency", 1.6) / h
+            off = self.get("size", 1.2) * math.tan(math.pi * prd)
+
+            res[i] = np.roll(image[i], int(off), 0)
+
+        self.ct += 1
+
+        return res, data
+
+
+class Roll(VPL):
+
+    def register(self):
+        self.available_args["h"] = "should be (lambda height, frame_count) to tell how much to roll"
+        self.available_args["w"] = "should be (lambda width, frame_count) to tell how much to roll"
+
+    def process(self, pipe, image, data):
+
+        h, w, d = image.shape
+
+        res = np.zeros(image.shape, dtype=image.dtype)
+
+        if not hasattr(self, "ct"):
+            self.ct = 0
+
+        # check these out
+        h_off = self.get("h", lambda height, frame_count: 0)
+        w_off = self.get("w", lambda height, frame_count: 0)
+
+        for i in range(h):
+            off = h_off(i, self.ct)
+            res[i] = np.roll(image[i], int(off), 0)
+
+        image = res.copy()
+
+        for i in range(w):
+            off = w_off(i, self.ct)
+            res[:,i,:] = np.roll(image[:,i,:], int(off), 0)
+
+        self.ct += 1
+
+        return res, data
+
+
+
+
+class Grid(VPL):
+
+    def register(self):
+        self.available_args["h"] = "how many copies height wise"
+        self.available_args["w"] = "how many copies width wise"
+        self.available_args["keep_size"] = "whether or not to keep the input size (default True)"
+
+    def process(self, pipe, image, data):
+
+        h, w, d = image.shape
+
+        orig_h, orig_w = int(h), int(w)
+
+
+        # check these out
+        h = self.get("h", 2)
+        w = self.get("w", 2)
+
+        if self.get("keep_size", True):
+            image = cv2.resize(image.copy(), (orig_w // w, orig_h // h), cv2.INTER_NEAREST)
+
+        res = image.copy()
+
+
+        for i in range(h - 1):
+            res = np.concatenate((res, image), axis=0)
+
+        image = res.copy()
+
+        for i in range(w - 1):
+            res = np.concatenate((res, image), axis=1)
+
+        if self.get("keep_size", True):
+            res = cv2.resize(res, (orig_w, orig_h), cv2.INTER_NEAREST)
+
+        return res, data
+
+
+
 
 
 

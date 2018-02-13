@@ -4,6 +4,9 @@ import vpl
 # this line makes it easier
 from vpl.all import *
 
+import math
+
+
 pipe = Pipeline("mypipe")
 
 size = 640, 480
@@ -21,11 +24,16 @@ pipe.add_vpl(VideoSource(source=0, properties=cam_props))
 
 # processing here
 
-pipe.add_vpl(CoolChannelOffset(xoff=lambda i: 6 * i, yoff=0))
 #pipe.add_vpl(Bleed(N=10))
 #pipe.add_vpl(Grayscale())
-pipe.add_vpl(RainbowCrazy())
+#pipe.add_vpl(RainbowCrazy())
 #pipe.add_vpl(HSLBin())
+#pipe.add_vpl(CoolChannelOffset(xoff=lambda i: 6 * i, yoff=0))
+#pipe.add_vpl(Scanlines())
+#pipe.add_vpl(Roll(h=lambda h, ct: 10 * math.sin(2 * math.pi * h / 120 + ct / 12.0)))
+#pipe.add_vpl(Pixelate())
+#pipe.add_vpl(Grid(w=2, h=2))
+
 
 # just output
 
