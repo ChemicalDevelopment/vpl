@@ -22,6 +22,8 @@ test.py
 *.wav
 *.mp3
 *.ogg
+*.avi
+*.mp4
 *.flac
 *.mp4
 *.gif

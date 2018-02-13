@@ -11,6 +11,12 @@ from vpl.defines import cap_prop_lookup
 import cv2
 import numpy as np
 
+import vpl
+
+import os
+import time
+import pathlib
+
 class VideoSource(VPL):
     """
 
@@ -57,7 +63,16 @@ class VideoSource(VPL):
         return self.camera_flag, self.camera_image
 
     def get_video_reader_image(self):
-        return self.video_reader.read()
+        if not hasattr(self, "video_reader_init"):
+            self.video_reader_init = True
+            self.video_reader_fps = self.video_reader.get(vpl.defines.cap_prop_lookup["FPS"])
+            print (self.video_reader_fps)
+            if self.video_reader_fps is None or self.video_reader_fps < 1.0:
+                self.video_reader_fps = 24.0
+        if not hasattr(self, "last_video_reader_read_time") or time.time() - self.last_video_reader_read_time >= 1.0 / self.video_reader_fps:
+            self.last_video_reader_read_time = time.time()
+            self.last_video_reader_read = self.video_reader.read()
+        return self.last_video_reader_read
     
     def get_image_sequence_image(self):
         my_idx = self.images_idx
@@ -95,13 +110,13 @@ class VideoSource(VPL):
             elif isinstance(source, str):
                 _, extension = os.path.splitext(source)
                 extension = extension.replace(".", "").lower()
-                if extension in valid_image_formats:
+                if extension in vpl.defines.valid_image_formats:
                     # have an image sequence
                     self.image_sequence_sources = glob.glob(source)
                     self.images = [None] * len(self.image_sequence_sources)
                     self.images_idx = 0
                     self.get_image = self.get_image_sequence_image
-                elif extension in valid_video_formats:
+                elif extension in vpl.defines.valid_video_formats:
                     # read from a video file
                     self.video_reader = cv2.VideoCapture(source)
                     self.get_image = self.get_video_reader_image
@@ -148,18 +163,21 @@ class VideoSaver(VPL):
 
     def save_image(self, image, num):
         _, ext = os.path.splitext(self["path"])
-        if ext in (".mp4", ".avi", ".mov"):
-            if not hasattr(self, "video_out"):
+        if ext.replace(".", "") in vpl.defines.valid_video_formats:
+            if not hasattr(self, "video"):
+                self.video = True
+
                 h, w, d = image.shape
-                self.fourcc = cv2.VideoWriter_fourcc(*self.get("fourcc", "XVID"))
-                self.fps = self.get("fps", 24)
+                cc_text = self.get("fourcc", "X264")
+                self.fourcc = cv2.VideoWriter_fourcc(*cc_text)
+                self.fps = self.get("fps", 24.0)
                 self.video_out = cv2.VideoWriter(self["path"], self.fourcc, self.fps, (w, h))
 
                 loc = pathlib.Path(self["path"])
                 if not loc.parent.exists():
                     loc.parent.mkdir(parents=True)
 
-            if not hasattr(self, "last_time") or time.time() - self.last_time > 1.0 / self.fps:
+            if not hasattr(self, "last_time") or time.time() - self.last_time >= 1.0 / self.fps:
                 self.video_out.write(image)
                 self.last_time = time.time()
 

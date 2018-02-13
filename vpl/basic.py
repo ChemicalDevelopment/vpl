@@ -8,6 +8,10 @@ from vpl import VPL
 
 import numpy as np
 
+import cv2
+
+import time
+
 class Resize(VPL):
     """
 
@@ -149,5 +153,34 @@ class Grayscale(VPL):
         for i in range(0, 3):
             image[:,:,i] = bw
         return image, data
+
+
+
+
+class PrintInfo(VPL):
+
+    def register(self):
+        self.available_args["fps"] = "fps cap to display results at"
+
+    def process(self, pipe, image, data):
+        if not hasattr(self, "last_time") or time.time() - self.last_time > 1.0 / self.get("fps", 3):
+            if self.get("extended", False):
+                print ("image[%s]: %s" % (image.dtype, image.shape))
+                print ("total fps: %.1f" % (pipe.chain_fps[0]))
+                for i in range(len(pipe.chain)):
+                    if i < len(pipe.chain_fps[1]):
+                        print ("  %s # %.1f fps" % (str(pipe.chain[i]), pipe.chain_fps[1][i]))
+                    else:
+                        print ("  %s" % (str(pipe.chain[i])))
+                
+            else:
+                print ("image[%s]: %s" % (image.dtype, image.shape))
+                print ("fps: %s" % str(pipe.chain_fps))
+
+            self.last_time = time.time()
+
+        return image, data
+
+
 
 

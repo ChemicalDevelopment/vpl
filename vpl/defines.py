@@ -6,6 +6,9 @@ import threading
 import cv2
 import numpy as np
 
+import inspect
+
+
 
 """
 
@@ -253,6 +256,8 @@ class VPL:
             v = self.kwargs[k]
             if isinstance(v, str):
                 v = "'%s'" % v
+            #elif isinstance(v, type(lambda _: None)):
+            #    v = "(%s)" % inspect.getsourcelines(v)[0][0]
             
             ss += ["%s=%s" % (k, v)]
 

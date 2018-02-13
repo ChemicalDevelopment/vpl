@@ -41,7 +41,7 @@ class Bleed(VPL):
 
         arith_dtype = np.float32
 
-        self.buffer.insert(0, image.copy().astype(arith_dtype))
+        self.buffer.insert(0, image.astype(arith_dtype))
 
         if len(self.buffer) >= N:
             self.buffer = self.buffer[:N]
@@ -54,16 +54,17 @@ class Bleed(VPL):
 
         b4dtype = image.dtype
 
+        image = image.copy().astype(arith_dtype)
+
         image[:,:,:] = 0
         
-        image = image.astype(arith_dtype)
-
         h, w, d = image.shape
 
         for i in range(len(a)):
             if image.shape != self.buffer[i].shape:
                 self.buffer[i] = cv2.resize(self.buffer[i], (w, h))
 
+            #image = image + a[i] * self.buffer[i]
             image = cv2.addWeighted(image, 1.0, self.buffer[i], a[i], 0)
 
         return image.astype(b4dtype), data
