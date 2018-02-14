@@ -34,11 +34,11 @@ pipe.add_vpl(Resize(w=size[0], h=size[1]))
 #pipe.add_vpl(Grayscale())
 #pipe.add_vpl(RainbowCrazy())
 #pipe.add_vpl(HSLBin())
-#pipe.add_vpl(CoolChannelOffset(xoff=lambda i: 6 * i, yoff=0))
+pipe.add_vpl(CoolChannelOffset(xoff=lambda i: 6 * i, yoff=0))
 #pipe.add_vpl(Grid(w=2, h=2))
-#pipe.add_vpl(Roll(w=lambda w, ct: w / 2.0 + ct * 12, h=lambda h, ct: 10 * math.sin(2 * math.pi * h / 120 + ct * 6) + ct * 4))
+pipe.add_vpl(Roll(w=lambda w, ct: w / 4.0 + ct * 4, h=lambda h, ct: 10 * math.sin(2 * math.pi * h / 120 + ct * 6) + ct * 4))
 #pipe.add_vpl(Pixelate())
-#pipe.add_vpl(Scanlines())
+pipe.add_vpl(Scanlines())
 
 # just output
 
