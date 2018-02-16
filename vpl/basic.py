@@ -85,6 +85,16 @@ class Blur(VPL):
                 return cv2.blur(image, (self["w"], self["h"])), data
 
 
+class Bilateral(VPL):
+    def register(self):
+        pass
+
+    def process(self, pipe, image, data):
+        s_color = self.get("s_color", 5)
+        s_space = self.get("s_space", 10)
+        res = cv2.bilateralFilter(image.copy(), s_color, s_space, s_space)
+        return res, data
+
 
 class FPSCounter(VPL):
     """

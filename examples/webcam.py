@@ -11,6 +11,7 @@ parser = argparse.ArgumentParser(description='webcam viewer')
 parser.add_argument("source", nargs='?', default=0, help='camera source (can be video file)')
 parser.add_argument("-s", "--size", default=None, type=int, nargs=2, help='size')
 parser.add_argument("-e", "--exposure", default=None, type=float, help='exposure settings')
+parser.add_argument("-ae", "--auto-exposure", default=None, type=float, help='auto exposure settings')
 parser.add_argument("-so", "--source-output", default=None, help='output raw webcam feed')
 parser.add_argument("--stream", default=None, type=int, help='port to stream to')
 
@@ -34,7 +35,7 @@ pipe = Pipeline("pipe")
 
 
 # input
-vsrc = VideoSource(source=args.source, async=True)
+vsrc = VideoSource(source=args.source, async=False)
 
 pipe.add_vpl(vsrc)
 
@@ -45,8 +46,11 @@ cam_props = CameraProperties()
 cam_props["FPS"] = 60.0
 
 if args.exposure is not None and not args.no_prop:
-    #cam_props["AUTO_EXPOSURE"] = args.exposure
     cam_props["EXPOSURE"] = args.exposure
+
+if args.auto_exposure is not None and not args.no_prop:
+    cam_props["AUTO_EXPOSURE"] = args.auto_exposure
+
 
 # set preferred width and height
 if args.size is not None and not args.no_prop:
@@ -66,12 +70,13 @@ if args.source_output:
 
 #pipe.add_vpl(Bleed(N=24))
 #pipe.add_vpl(Grayscale())
+#pipe.add_vpl(Noise(level=.2))
+#pipe.add_vpl(Bilateral())
 #pipe.add_vpl(RainbowCrazy())
 #pipe.add_vpl(HSLBin())
 #pipe.add_vpl(Roll(w=lambda w, ct: 20 * ct / 24.0, h=lambda h, ct: 2.5 * ct / 24.0))
 #pipe.add_vpl(Grid(w=2, h=2))
 #pipe.add_vpl(Pixelate())
-#pipe.add_vpl(Diff())
 
 #pipe.add_vpl(CoolChannelOffset(xoff=lambda i: 6 * i, yoff=0))
 #pipe.add_vpl(Scanlines())

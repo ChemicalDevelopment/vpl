@@ -195,9 +195,8 @@ class RainbowCrazy(VPL):
         if not hasattr(self, "ct"):
             self.ct = 0
 
-
-        hls_image[:,:,0] = ((hls_image[:,:,0] + self.ct * 8) % 180).astype(hls_image.dtype)
-        hls_image[:,:,2] += 20
+        hls_image[:,:,0] = ((hls_image[:,:,0] + self.ct * 3.5) % 180).astype(hls_image.dtype)
+        #hls_image[:,:,2] += 20
 
         self.ct += 1
 
