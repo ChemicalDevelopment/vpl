@@ -34,7 +34,7 @@ pipe = Pipeline("pipe")
 
 
 # input
-vsrc = VideoSource(source=args.source, async=False)
+vsrc = VideoSource(source=args.source, async=True)
 
 pipe.add_vpl(vsrc)
 
