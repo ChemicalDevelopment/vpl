@@ -31,7 +31,7 @@ v4l2-ctl -d $DEVICE -c brightness=133
 v4l2-ctl -d $DEVICE -c contrast=5
 v4l2-ctl -d $DEVICE -c saturation=83
 v4l2-ctl -d $DEVICE -c white_balance_temperature_auto=1
-v4l2-ctl -d $DEVICE -c powerline_line_frequency=2
+v4l2-ctl -d $DEVICE -c power_line_frequency=2
 v4l2-ctl -d $DEVICE -c white_balance_temperature=4500
 v4l2-ctl -d $DEVICE -c sharpness=25
 
