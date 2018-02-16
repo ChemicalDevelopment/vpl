@@ -186,10 +186,11 @@ class Pipeline:
         def fps(t):
             return 1.0 / t if t != 0 else float('inf')      
         
-        self.chain_images = im.copy(), chain_images
-        self.chain_time = sum(chain_time), chain_time
-        self.chain_fps = fps(sum(chain_time)), [fps(i) for i in chain_time]
-        
+        if not self.is_quit:
+            self.chain_images = im.copy(), chain_images
+            self.chain_time = sum(chain_time), chain_time
+            self.chain_fps = fps(sum(chain_time)), [fps(i) for i in chain_time]
+            
         return im, data, chain_time
 
     def process(self, image, data=None, loop=False):
@@ -224,6 +225,10 @@ class Pipeline:
                 #print ("fps: " + "%.1f" % self.chain_fps[0])
                 
         return im, data
+
+    def end(self):
+        for vpl in self.chain:
+            vpl.end()
 
     def __getitem__(self, key, default=None):
         return self.vals.get(key, default)
@@ -322,7 +327,10 @@ class VPL:
         """
 
         return image, data
-    
+
+    def end(self):
+        # called optionally as an end
+        pass
 
 class SubVPL(VPL):
     """

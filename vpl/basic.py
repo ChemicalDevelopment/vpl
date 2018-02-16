@@ -90,8 +90,8 @@ class Bilateral(VPL):
         pass
 
     def process(self, pipe, image, data):
-        s_color = self.get("s_color", 5)
-        s_space = self.get("s_space", 10)
+        s_color = self.get("s_color", 8)
+        s_space = self.get("s_space", 16)
         res = cv2.bilateralFilter(image.copy(), s_color, s_space, s_space)
         return res, data
 

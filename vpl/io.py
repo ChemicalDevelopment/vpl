@@ -41,47 +41,13 @@ class VideoSource(VPL):
         self.available_args["repeat"] = "bool whether or not to repeat an image sequence (default is False)"
 
 
-    def camera_single_loop(self):
-        stime = time.time()
+    def camera_update_image(self):
         self.camera_flag, self.camera_image = self.camera.read()
-        etime = time.time()
-        elapsed_time = etime - stime
-        self.camera_fps = 1.0 / elapsed_time if elapsed_time != 0 else -1.0
-        #print (self.camera_fps)
 
+    def video_reader_update_image(self):
+        _, self.camera_image = self.video_reader.read()
 
-    def camera_loop(self):
-        while True:
-            try:
-                self.camera_single_loop()
-            except:
-                pass
-
-    def set_camera_props(self):
-        props = self["properties"]
-        if props != None:
-            for p in props.props:
-                #print ("setting: " + str(cap_prop_lookup[p]) + " to: " + str(type(props[p])))
-                self.camera.set(cap_prop_lookup[p], props[p])
-
-    def get_camera_image(self):
-        if not self.is_async:
-            self.camera_single_loop()
-        return self.camera_flag, self.camera_image
-
-    def get_video_reader_image(self):
-        if not hasattr(self, "video_reader_init"):
-            self.video_reader_init = True
-            self.video_reader_fps = self.video_reader.get(vpl.defines.cap_prop_lookup["FPS"])
-            #print (self.video_reader_fps)
-            if self.video_reader_fps is None or self.video_reader_fps < 1.0:
-                self.video_reader_fps = 24.0
-        if not hasattr(self, "last_video_reader_read_time") or time.time() - self.last_video_reader_read_time >= 1.0 / self.video_reader_fps:
-            self.last_video_reader_read_time = time.time()
-            self.last_video_reader_read = self.video_reader.read()
-        return self.last_video_reader_read
-    
-    def get_image_sequence_image(self):
+    def image_sequence_update_image(self):
         my_idx = self.images_idx
         if self.get("repeat", False):
             my_idx = my_idx % len(self.images)
@@ -94,11 +60,57 @@ class VideoSource(VPL):
             self.images[my_idx] = cv2.imread(self.image_sequence_sources[my_idx])
         return True, self.images[my_idx]
 
+    def update_image(self):
+        stime = time.time()
+
+        if self._type == "video":
+            self.video_reader_update_image()
+        elif self._type == "sequence":
+            self.image_sequence_update_image()
+        elif self._type == "camera":
+            self.camera_update_image()
+
+        etime = time.time()
+        elapsed_time = etime - stime
+        self.update_fps = 1.0 / elapsed_time if elapsed_time != 0 else -1.0
+
+
+    def update_loop(self):
+        cap_fps = 0
+
+        if self.get("cap_fps", None) is not None:
+            cap_fps = self.get("cap_fps", None)
+        elif self._type == "video":
+            cap_fps = self.video_reader.get(vpl.defines.cap_prop_lookup["FPS"])
+
+        while True:
+            try:
+                st = time.time()
+                self.update_image()
+                et = time.time()
+                dt = et - st
+                if cap_fps is not None and cap_fps > 0:
+                    if dt > 0 and dt < 1.0 / cap_fps:
+                        time.sleep(1.0 / cap_fps - dt)
+            except:
+                pass
+
+    def set_camera_props(self):
+        props = self["properties"]
+        if props != None:
+            for p in props.props:
+                #print ("setting: " + str(cap_prop_lookup[p]) + " to: " + str(type(props[p])))
+                self.camera.set(cap_prop_lookup[p], props[p])
+
+    def get_image(self):
+        if not self.is_async:
+            self.update_image()
+        return self.camera_image
+
     def process(self, pipe, image, data):
         if not hasattr(self, "has_init"):
             # first time running, default camera
             self.has_init = True
-            self.get_image = None
 
             # default async is false
             self.is_async = self.get("async", False)
@@ -115,13 +127,10 @@ class VideoSource(VPL):
                     source = int(source)
                 # create camera
                 self.camera = cv2.VideoCapture(source)
-                self.get_image = self.get_camera_image
                 self.set_camera_props()
 
+                self._type = "camera"
 
-                if self.is_async:
-                    self.do_async(self.camera_loop)
-                
             elif isinstance(source, str):
                 _, extension = os.path.splitext(source)
                 extension = extension.replace(".", "").lower()
@@ -130,27 +139,35 @@ class VideoSource(VPL):
                     self.image_sequence_sources = glob.glob(source)
                     self.images = [None] * len(self.image_sequence_sources)
                     self.images_idx = 0
-                    self.get_image = self.get_image_sequence_image
+
+                    self._type = "sequence"
+                
                 elif extension in vpl.defines.valid_video_formats:
                     # read from a video file
                     self.video_reader = cv2.VideoCapture(source)
-                    self.get_image = self.get_video_reader_image
-                    
+                    self._type = "video"
+                else:
+                    raise Exception("unknown source type:" + str(source))
+
             else:
                 # use an already instasiated camera
                 self.camera = source
                 self.set_camera_props()
-                self.get_image = self.get_camera_image
+                self._type = "camera"
 
-                if self.is_async:
-                    self.do_async(self.camera_loop)
-                
+            for i in range(self.get("burn", 1)):
+                self.update_image()
 
-        flag, image = self.get_image()
+            if self.is_async:
+                self.do_async(self.update_loop)
+
+
+        image = self.get_image()
 
         #data["camera_flag"] = flag
         if hasattr(self, "camera_fps"):
             data["camera_" + str(self._source) + "_fps"] = self.camera_fps
+
         if image is None:
             pipe.quit()
 
@@ -180,11 +197,33 @@ class VideoSaver(VPL):
         self.available_args["every"] = "integer number of saving one every N frames (default is 1, every frame)"
         self.available_args["fps"] = "frames per second to write to video file(default 24)"
 
+    def end(self):
+        if hasattr(self, "video_out"):
+            self.video_out.release()
+
+
     def save_image(self, image, num):
-        _, ext = os.path.splitext(self["path"])
-        if ext.replace(".", "") in vpl.defines.valid_video_formats:
-            if not hasattr(self, "video"):
-                self.video = True
+        if self._type == "video":
+            if not hasattr(self, "last_time") or time.time() - self.last_time >= 1.0 / self.fps:
+                self.video_out.write(image)
+                self.last_time = time.time()
+
+        elif self._type == "sequence":
+            
+            loc = pathlib.Path(self["path"].format(num="%08d" % num))
+
+            cv2.imwrite(str(loc), image)
+
+
+    def process(self, pipe, image, data):
+        if not hasattr(self, "num"):
+            self.num = 0
+
+            self.is_async = self.get("async", True)
+
+            _, ext = os.path.splitext(self["path"])
+            if ext.replace(".", "") in vpl.defines.valid_video_formats:
+                self._type = "video"
 
                 h, w, d = image.shape
                 cc_text = self.get("fourcc", "X264")
@@ -196,24 +235,22 @@ class VideoSaver(VPL):
                 if not loc.parent.exists():
                     loc.parent.mkdir(parents=True)
 
-            if not hasattr(self, "last_time") or time.time() - self.last_time >= 1.0 / self.fps:
-                self.video_out.write(image)
-                self.last_time = time.time()
+            else:
+                self._type = "sequence"
+                
+                _loc = pathlib.Path(self["path"])
 
-        else:
-            loc = pathlib.Path(self["path"].format(num="%08d" % num))
-            if not loc.parent.exists():
-                loc.parent.mkdir(parents=True)
+                if not _loc.parent.exists():
+                    _loc.parent.mkdir(parents=True)
 
-            cv2.imwrite(str(loc), image)
-
-    def process(self, pipe, image, data):
-        if not hasattr(self, "num"):
-            self.num = 0
         
         if self.num % self.get("every", 1) == 0:
+
             # async save it
-            self.do_async(self.save_image, (image.copy(), self.num))
+            if self.is_async:
+                self.do_async(self.save_image, (image.copy(), self.num))
+            else:
+                self.save_image(image, self.num)
 
         self.num += 1
 

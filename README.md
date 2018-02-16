@@ -3,6 +3,20 @@
 Vide Pipe Line
 
 
+# installation
+
+Run `pip3 install vpl` (it's on pypi)
+
+Or `pip3 install -e git://github.com/chemicaldevelopment/vpl` (for development, i.e. unstable builds)
+
+# usage
+
+It comes with a simple viewer, run:
+
+`python3 -mvpl --help`
+
+You can use `import vpl` in your code
+
 # exposure settings
 
 Exposure settings are extremely finicky to get working. Here's a few commands to try:
@@ -59,4 +73,6 @@ Streaming Parameters Video Capture:
 
 ```
 
+
+Use the script `utils/reset_lifecam.sh`
 

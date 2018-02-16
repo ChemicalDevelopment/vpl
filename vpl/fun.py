@@ -304,5 +304,44 @@ class Grid(VPL):
 
 
 
+class EdgeDiff(VPL):
+
+    def register(self):
+        pass
+
+    def process(self, pipe, image, data):
+        if not hasattr(self, "roll"):
+            self.roll = Roll(w=lambda a, b: 1, h=lambda a, b: 1)
+
+        h, w, d = image.shape
+
+        res, _ = self.roll.process(pipe, image, data)
+
+        res = cv2.add(cv2.subtract(res, image), cv2.subtract(image, res))
+
+        return res, data
+
+
+
+class Transform(VPL):
+
+    def register(self):
+        pass
+
+    def process(self, pipe, image, data):
+        h, w, d = image.shape
+
+        func = self.get("func", lambda x, y, w, h: (x, y))
+        # ex: func=lambda x, y, w, h: (w * np.log(x+1) / np.log(w), h * np.log(y+1) / np.log(h))
+        # this does log transofmr
+
+        map_x, map_y = np.fromfunction(lambda y, x: func(x, y, w, h), (h, w), dtype=np.float32)
+
+        res = cv2.remap(image.copy(), map_x, map_y, cv2.INTER_LINEAR)
+
+        return res, data
+
+
+
 
 

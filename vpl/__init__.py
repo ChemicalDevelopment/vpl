@@ -27,6 +27,7 @@ from vpl import basic
 from vpl import fun
 from vpl import streaming
 from vpl import io
+from vpl import util
 
 
 from enum import Enum
@@ -36,5 +37,4 @@ import math
 import os
 import glob
 import pathlib
-
 

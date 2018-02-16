@@ -39,11 +39,11 @@ setup(
 
     keywords='video processing',
 
-    packages = ["vpl"],
+    packages = ["vpl", "vpl.examples"],
 
     test_suite="vpl.tests",
 
-    install_requires=['numpy', 'scipy'],
+    install_requires=['numpy', 'scipy', 'opencv-python'],
     extras_require={
         'test': ['coverage'],
         'play': ['simpleaudio']
