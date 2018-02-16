@@ -39,7 +39,7 @@ vsrc = VideoSource(source=args.source, async=False)
 
 pipe.add_vpl(vsrc)
 
-pipe.add_vpl(PrintInfo(fps=2, extended=True))
+#pipe.add_vpl(PrintInfo(fps=2, extended=True))
 
 cam_props = CameraProperties()
 

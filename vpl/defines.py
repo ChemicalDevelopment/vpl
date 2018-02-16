@@ -114,8 +114,9 @@ class Pipeline:
         else:
             self.chain = chain
 
-        self.chain_time = []
+        self.chain_time = (0, [])
         self.chain_fps = (0, [])
+        self.chain_images = (None, [])
 
         self.vals = {}
 
@@ -171,17 +172,21 @@ class Pipeline:
     def __raw_chain(self, im, data):
         chain_time = []
 
+        chain_images = []
+
         for vpl in self.chain:
             st = time.time()
             im, data = vpl.process(self, im, data)
             et = time.time()
             if self.is_quit:
                 break
+            chain_images += [im.copy()]
             chain_time += [et - st]
 
         def fps(t):
             return 1.0 / t if t != 0 else float('inf')      
         
+        self.chain_images = im.copy(), chain_images
         self.chain_time = sum(chain_time), chain_time
         self.chain_fps = fps(sum(chain_time)), [fps(i) for i in chain_time]
         

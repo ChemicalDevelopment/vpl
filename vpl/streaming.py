@@ -21,6 +21,9 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     def update_image(self, image):
         self.RequestHandlerClass.image = image
 
+    def update_pipe(self, pipe):
+        self.RequestHandlerClass.pipe = pipe
+
 class MJPGStreamHandle(BaseHTTPRequestHandler):
     """
 
@@ -31,6 +34,8 @@ class MJPGStreamHandle(BaseHTTPRequestHandler):
     def do_GET_MJPG(self):
         if not hasattr(self, "image"):
             return
+
+        print (self.path)
 
         self.send_response(200)
         self.send_header('Content-type','multipart/x-mixed-replace; boundary=--jpgboundary')
@@ -60,7 +65,8 @@ class MJPGStreamHandle(BaseHTTPRequestHandler):
         <html>
             <head></head>
             <body>
-            <img src="/whatever.mjpeg"/>
+            <img src="
+            />
             </body>
         </html>
         """.encode())
@@ -95,6 +101,7 @@ class MJPGServer(VPL):
             self.http_server.daemon_threads = True
             self.do_async(self.http_server.serve_forever)
 
+        self.http_server.update_pipe(pipe)
         self.http_server.update_image(image.copy())
 
         return image, data
