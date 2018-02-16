@@ -10,6 +10,7 @@ import time
 
 from http.server import BaseHTTPRequestHandler,HTTPServer
 from socketserver import ThreadingMixIn
+import inspect
 
 import cv2
 import numpy as np
@@ -34,9 +35,11 @@ class MJPGStreamHandle(BaseHTTPRequestHandler):
     def do_GET_MJPG(self):
         if not hasattr(self, "image"):
             return
+        
+        print (self.path)
 
         try:
-            idx = self.path.replace("/", "").split(".")[0]
+            idx = int(self.path.replace("/", "").split(".")[0])
         except:
             idx = None
 
@@ -49,7 +52,10 @@ class MJPGStreamHandle(BaseHTTPRequestHandler):
             if idx == None:
                 im = self.image.copy()
             else:
-                im = self.pipe.chain_images[1][int(idx)].copy()
+                if idx >= len(self.pipe.chain_images[1]):
+                    im = self.pipe.chain_images[0].copy()
+                else:
+                    im = self.pipe.chain_images[1][idx].copy()
 
             # encode image
             cv2s = cv2.imencode('.jpg', im)[1].tostring()
@@ -68,15 +74,39 @@ class MJPGStreamHandle(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type','text/html')
         self.end_headers()
-        self.wfile.write("""
-        <html>
-            <head></head>
-            <body>
-            <img src="
-            />
-            </body>
-        </html>
-        """.encode())
+
+        if self.path.endswith("chain.html"):
+            page = """
+            <html>
+                <head></head>
+                <body>
+            """
+
+            for i in range(0, len(self.pipe.chain_images[1])):
+                #my_name = inspect.getsourcelines(self.pipe.chain[i])[0][0]
+                my_name = str(self.pipe.chain[i])
+                page += """
+                    <h2>{name}</h2>
+                    <img src=\"/{num}.mjpg\"/><br />
+                """.format(num=i, name=my_name)
+
+
+            page += """
+                
+                </body>
+            </html>
+            """
+            self.wfile.write(page.encode())
+            
+        else:
+            self.wfile.write("""
+            <html>
+                <head></head>
+                <body>
+                <img src="whatever.mjpg"/>
+                </body>
+            </html>
+            """.encode())
 
     def do_GET(self):
         #self.send_response(200)
@@ -85,6 +115,8 @@ class MJPGStreamHandle(BaseHTTPRequestHandler):
 
         if self.path.endswith('.html'):
             self.do_GET_HTML()
+        elif self.path.endswith('.ico'):
+            pass
         else:
             self.do_GET_MJPG()
             

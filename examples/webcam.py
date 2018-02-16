@@ -79,8 +79,8 @@ if args.source_output:
 #pipe.add_vpl(Grid(w=2, h=2))
 #pipe.add_vpl(Pixelate())
 
-#pipe.add_vpl(CoolChannelOffset(xoff=lambda i: 6 * i, yoff=0))
-#pipe.add_vpl(Scanlines())
+pipe.add_vpl(CoolChannelOffset(xoff=lambda i: 6 * i, yoff=0))
+pipe.add_vpl(Scanlines())
 
 
 # just output
