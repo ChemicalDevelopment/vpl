@@ -14,6 +14,7 @@ parser.add_argument("source", nargs='?', default=0, type=int, help='camera sourc
 
 parser.add_argument("-s", "--size", default=None, type=int, nargs=2, help='size')
 parser.add_argument("-np", "--no-prop", action='store_true', help='use this flag to not use CameraProperties')
+parser.add_argument("-ns", "--no-show", action='store_true', help='use this flag to not show the image')
 
 args = parser.parse_args()
 
@@ -35,10 +36,11 @@ while True:
     #print(img.shape)
     print ("fps: %.1f" % elapsed)
 
-    cv2.imshow("window", img)
+    if not args.no_show:
+        cv2.imshow("window", img)
 
-    k = cv2.waitKey(1)
+        k = cv2.waitKey(1)
 
-    if k != -1:
-        break
+        if k != -1:
+            break
 
