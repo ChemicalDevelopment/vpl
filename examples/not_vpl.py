@@ -27,12 +27,6 @@ if args.size is not None and not args.no_prop:
 
 src.set(cv2.CAP_PROP_FPS, 60)
 
-#time.sleep(2)
-#src.set(cv2.CAP_PROP_AUTO_EXPOSURE, .25)
-#src.set(cv2.CAP_PROP_EXPOSURE, 0.1)
-
-
-
 while True:
     st = time.time()
     _, img = src.read()

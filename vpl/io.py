@@ -100,7 +100,8 @@ class VideoSource(VPL):
             self.has_init = True
             self.get_image = None
 
-            self.is_async = self.get("async", True)
+            # default async is false
+            self.is_async = self.get("async", False)
 
             source = self.get("source", 0)
 
