@@ -46,9 +46,14 @@ class VideoSource(VPL):
 
 
     def camera_loop(self):
+        stime, etime = None, None
         while True:
             try:
+                stime = time.time()
                 self.camera_single_loop()
+                etime = time.time()
+                elapsed_time = etime - stime
+                self.camera_fps = 1.0 / elapsed_time if elapsed_time != 0 else -1.0
             except:
                 pass
 
@@ -66,7 +71,7 @@ class VideoSource(VPL):
         if not hasattr(self, "video_reader_init"):
             self.video_reader_init = True
             self.video_reader_fps = self.video_reader.get(vpl.defines.cap_prop_lookup["FPS"])
-            print (self.video_reader_fps)
+            #print (self.video_reader_fps)
             if self.video_reader_fps is None or self.video_reader_fps < 1.0:
                 self.video_reader_fps = 24.0
         if not hasattr(self, "last_video_reader_read_time") or time.time() - self.last_video_reader_read_time >= 1.0 / self.video_reader_fps:
@@ -95,6 +100,8 @@ class VideoSource(VPL):
 
             source = self.get("source", 0)
 
+            self._source = source
+
             # default images
             self.camera_flag, self.camera_image = True, np.zeros((320, 240, 3), np.uint8)
 
@@ -103,9 +110,10 @@ class VideoSource(VPL):
                     source = int(source)
                 # create camera
                 self.camera = cv2.VideoCapture(source)
-                self.do_async(self.camera_loop)
                 self.get_image = self.get_camera_image
                 self.set_camera_props()
+
+                self.do_async(self.camera_loop)
                 
             elif isinstance(source, str):
                 _, extension = os.path.splitext(source)
@@ -124,14 +132,17 @@ class VideoSource(VPL):
             else:
                 # use an already instasiated camera
                 self.camera = source
-                self.do_async(self.camera_loop)
-                self.get_image = self.get_camera_image
                 self.set_camera_props()
+                self.get_image = self.get_camera_image
+
+                self.do_async(self.camera_loop)
                 
 
         flag, image = self.get_image()
 
         #data["camera_flag"] = flag
+        if hasattr(self, "camera_fps"):
+            data["camera_" + str(self._source) + "_fps"] = self.camera_fps
         if image is None:
             pipe.quit()
 
