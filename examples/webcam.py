@@ -1,8 +1,6 @@
 
-import vpl
-
-# this line makes it easier
-from vpl.all import *
+import sys
+import os
 
 import math
 
@@ -16,11 +14,21 @@ parser.add_argument("-e", "--exposure", default=None, type=float, help='exposure
 parser.add_argument("-so", "--source-output", default=None, help='output raw webcam feed')
 parser.add_argument("-ns", "--no-show", action='store_true', help='use this flag to not show')
 parser.add_argument("-np", "--no-prop", action='store_true', help='use this flag to not use CameraProperties')
+parser.add_argument("--dev", action='store_true', help='developer (non-install) flag')
 parser.add_argument("-o", "--output", default=None, help='output file')
 
 args = parser.parse_args()
 
+if args.dev:
+    sys.path.append(os.getcwd())
+
+import vpl
+
+# this line makes it easier
+from vpl.all import *
+
 pipe = Pipeline("pipe")
+
 
 # input
 vsrc = VideoSource(source=args.source)
@@ -28,9 +36,10 @@ vsrc = VideoSource(source=args.source)
 pipe.add_vpl(vsrc)
 
 pipe.add_vpl(PrintInfo(fps=2, extended=True))
-#pipe.add_vpl(VideoSource(source="recording.avi"))#, properties=cam_props))
 
 cam_props = CameraProperties()
+
+cam_props["FPS"] = 60.0
 
 if args.exposure is not None and not args.no_prop:
     #cam_props["AUTO_EXPOSURE"] = args.exposure
@@ -41,11 +50,11 @@ if args.size is not None and not args.no_prop:
     cam_props["FRAME_WIDTH"] = args.size[0]
     cam_props["FRAME_HEIGHT"] = args.size[1]
 
-    vsrc["properties"] = cam_props
+vsrc["properties"] = cam_props
 
 
-if args.size is not None:
-    pipe.add_vpl(Resize(w=args.size[0], h=args.size[1]))
+#if args.size is not None:
+#    pipe.add_vpl(Resize(w=args.size[0], h=args.size[1]))
 
 if args.source_output:
     pipe.add_vpl(VideoSaver(path=args.source_output))
@@ -65,7 +74,6 @@ if args.source_output:
 
 # just output
 
-#pipe.add_vpl(PrintInfo(fps=2, extended=True))
 
 #pipe.add_vpl(MJPGServer(port=5802))
 

@@ -42,18 +42,18 @@ class VideoSource(VPL):
 
 
     def camera_single_loop(self):
+        stime = time.time()
         self.camera_flag, self.camera_image = self.camera.read()
+        etime = time.time()
+        elapsed_time = etime - stime
+        self.camera_fps = 1.0 / elapsed_time if elapsed_time != 0 else -1.0
+        #print (self.camera_fps)
 
 
     def camera_loop(self):
-        stime, etime = None, None
         while True:
             try:
-                stime = time.time()
                 self.camera_single_loop()
-                etime = time.time()
-                elapsed_time = etime - stime
-                self.camera_fps = 1.0 / elapsed_time if elapsed_time != 0 else -1.0
             except:
                 pass
 
@@ -65,6 +65,8 @@ class VideoSource(VPL):
                 self.camera.set(cap_prop_lookup[p], props[p])
 
     def get_camera_image(self):
+        if not self.is_async:
+            self.camera_single_loop()
         return self.camera_flag, self.camera_image
 
     def get_video_reader_image(self):
@@ -98,6 +100,8 @@ class VideoSource(VPL):
             self.has_init = True
             self.get_image = None
 
+            self.is_async = self.get("async", True)
+
             source = self.get("source", 0)
 
             self._source = source
@@ -113,7 +117,9 @@ class VideoSource(VPL):
                 self.get_image = self.get_camera_image
                 self.set_camera_props()
 
-                self.do_async(self.camera_loop)
+
+                if self.is_async:
+                    self.do_async(self.camera_loop)
                 
             elif isinstance(source, str):
                 _, extension = os.path.splitext(source)
@@ -135,7 +141,8 @@ class VideoSource(VPL):
                 self.set_camera_props()
                 self.get_image = self.get_camera_image
 
-                self.do_async(self.camera_loop)
+                if self.is_async:
+                    self.do_async(self.camera_loop)
                 
 
         flag, image = self.get_image()
