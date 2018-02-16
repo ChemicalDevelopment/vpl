@@ -1,43 +1,8 @@
-# vpl
+#!/bin/bash
 
-Vide Pipe Line
+: '
 
-
-# exposure settings
-
-Exposure settings are extremely finicky to get working. Here's a few commands to try:
-
-First, set the auto control cutoff to 1:
-
-`v4l2-ctl -d /dev/video0 -c exposure_auto=1`
-
-Then, try setting the exposure value to various values between -100 and +100:
-
-`v4l2-ctl -d /dev/video0 -c exposure_absolute=-30`
-
-`v4l2-ctl -d /dev/video0 -c exposure_absolute=0`
-
-`v4l2-ctl -d /dev/video0 -c exposure_absolute=0.5`
-
-`v4l2-ctl -d /dev/video0 -c exposure_absolute=20`
-
-The optimal low/medium light setting for the Micro$oft Lifecam is:
-
-`v4l2-ctl -d /dev/video0 -c exposure_absolute=20.9`
-
-
-Use this command:
-
-`v4l2-ctl --all`
-
-*to print settings (and their defaults). This is the most important v4l command*
-
-Run through setting all these to defaults
-
-
-Here are the defaults for Micro$oft Lifecam:
-
-```
+Here are the defaults
 
 Streaming Parameters Video Capture:
 	Capabilities     : timeperframe
@@ -57,6 +22,23 @@ Streaming Parameters Video Capture:
                   tilt_absolute (int)    : min=-201600 max=201600 step=3600 default=0 value=0
                   zoom_absolute (int)    : min=0 max=10 step=1 default=0 value=0
 
-```
 
+'
+
+DEVICE="/dev/video0"
+
+v4l2-ctl -d $DEVICE -c brightness=133
+v4l2-ctl -d $DEVICE -c contrast=5
+v4l2-ctl -d $DEVICE -c saturation=83
+v4l2-ctl -d $DEVICE -c white_balance_temperature_auto=1
+v4l2-ctl -d $DEVICE -c powerline_line_frequency=2
+v4l2-ctl -d $DEVICE -c white_balance_temperature=4500
+v4l2-ctl -d $DEVICE -c sharpness=25
+
+v4l2-ctl -d $DEVICE -c backlight_compensation=0
+v4l2-ctl -d $DEVICE -c exposure_auto=1
+v4l2-ctl -d $DEVICE -c exposure_absolute=156
+v4l2-ctl -d $DEVICE -c pan_absolute=0
+v4l2-ctl -d $DEVICE -c tilt_absolute=0
+v4l2-ctl -d $DEVICE -c zoom_absolute=0
 
