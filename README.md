@@ -24,3 +24,13 @@ Then, try setting the exposure value to various values between -100 and +100:
 The optimal low/medium light setting for the Micro$oft Lifecam is:
 
 `v4l2-ctl -d /dev/video0 -c exposure_absolute=20.9`
+
+
+Use this command:
+
+`v4l2-ctl --all`
+
+*to print settings (and their defaults). This is the most important v4l command*
+
+Run through setting all these to defaults
+

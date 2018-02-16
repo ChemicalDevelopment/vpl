@@ -45,12 +45,13 @@ cam_props = CameraProperties()
 
 cam_props["FPS"] = 60.0
 
+"""
 if args.exposure is not None and not args.no_prop:
     cam_props["EXPOSURE"] = args.exposure
 
 if args.auto_exposure is not None and not args.no_prop:
     cam_props["AUTO_EXPOSURE"] = args.auto_exposure
-
+"""
 
 # set preferred width and height
 if args.size is not None and not args.no_prop:
