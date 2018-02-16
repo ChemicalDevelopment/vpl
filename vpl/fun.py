@@ -32,6 +32,28 @@ class CoolChannelOffset(VPL):
         return image, data
 
 
+class Diff(VPL):
+
+    def process(self, pipe, image, data):
+
+        ret = None
+
+        if not hasattr(self, "last_image"):
+            ret = image
+        else:
+            ret = cv2.absdiff(image.copy(), self.last_image.copy())
+            gray = cv2.cvtColor(ret, cv2.COLOR_BGR2GRAY)
+            _, mask = cv2.threshold(gray, 2, 255, cv2.THRESH_BINARY)
+
+            real = cv2.bitwise_and(image.copy(), image.copy(), mask = mask)
+
+            ret = real
+
+        self.last_image = image.copy()
+
+        return ret, data
+
+
 class Bleed(VPL):
 
     def process(self, pipe, image, data):
