@@ -21,7 +21,7 @@ with open(path.join(here, 'README.md')) as f:
 
 setup(
     name='vpl',
-    version='0.0.1',
+    version='0.0.2',
 
     description='Video Pipe Line',
     long_description=long_description,
