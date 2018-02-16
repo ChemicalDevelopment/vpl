@@ -35,14 +35,21 @@ class MJPGStreamHandle(BaseHTTPRequestHandler):
         if not hasattr(self, "image"):
             return
 
-        print (self.path)
+        try:
+            idx = self.path.replace("/", "").split(".")[0]
+        except:
+            idx = None
 
         self.send_response(200)
         self.send_header('Content-type','multipart/x-mixed-replace; boundary=--jpgboundary')
         self.end_headers()
+        im = None
         while True:
             # MAKE sure this refreshes the image every time
-            im = self.image.copy()
+            if idx == None:
+                im = self.image.copy()
+            else:
+                im = self.pipe.chain_images[1][int(idx)].copy()
 
             # encode image
             cv2s = cv2.imencode('.jpg', im)[1].tostring()
