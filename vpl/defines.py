@@ -180,7 +180,7 @@ class Pipeline:
             st = time.time()
             im, data = vpl.process(self, im, data)
             et = time.time()
-            if self.is_quit:
+            if self.is_quit or im is None:
                 break
             chain_images += [im.copy()]
             chain_time += [et - st]

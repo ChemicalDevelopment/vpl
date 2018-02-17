@@ -61,7 +61,8 @@ class VideoSource(VPL):
 
         if self.images[my_idx] is None:
             self.images[my_idx] = cv2.imread(self.image_sequence_sources[my_idx])
-        return True, self.images[my_idx]
+
+        self.camera_image = self.images[my_idx]
 
     def update_image(self):
         stime = time.time()
@@ -72,6 +73,8 @@ class VideoSource(VPL):
             self.image_sequence_update_image()
         elif self._type == "camera":
             self.camera_update_image()
+
+        self.camera_image = self.camera_image
 
         etime = time.time()
         elapsed_time = etime - stime
@@ -84,18 +87,21 @@ class VideoSource(VPL):
             self.cap_fps = self.video_reader.get(vpl.defines.cap_prop_lookup["FPS"])
         elif self.get("cap_fps", None) is not None:
             self.cap_fps = self.get("cap_fps", None)
+        
 
     def update_loop(self):
-
         while True:
             try:
                 st = time.time()
                 self.update_image()
                 et = time.time()
                 dt = et - st
+                self.camera_fps = 1.0 / dt if dt > 0 else 0
+
                 if self.cap_fps is not None and self.cap_fps > 0:
                     if dt > 0 and dt < 1.0 / self.cap_fps:
                         time.sleep(1.0 / self.cap_fps - dt)
+                
             except:
                 pass
 
@@ -168,6 +174,9 @@ class VideoSource(VPL):
                 self.do_async(self.update_loop)
 
 
+            #while not hasattr(self, "has_loop"):
+            #    time.sleep(0.1)
+
         image = self.get_image()
 
         #data["camera_flag"] = flag
@@ -176,7 +185,7 @@ class VideoSource(VPL):
 
         if hasattr(self, "cap_fps") and self.cap_fps is not None and self.cap_fps > 0:            
             data["cap_fps"] = self.cap_fps
-
+        
         if image is None:
             pipe.quit()
 
