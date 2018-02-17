@@ -22,6 +22,9 @@ parser.add_argument("--dev", action='store_true', help='developer (non-install) 
 
 parser.add_argument("-o", "--output", default=None, help='output file')
 
+parser.add_argument('-p','--plugins', nargs='*', help='Add plugins')
+parser.add_argument('-f','--files', nargs='*', help='Add file executors')
+
 args = parser.parse_args()
 
 final_output = args.output
@@ -78,15 +81,25 @@ if args.size is not None:
 #pipe.add_vpl(Grid(w=6, h=6))
 #pipe.add_vpl(Pixelate())
 
-pipe.add_vpl(CoolChannelOffset(xoff=lambda i: 6 * i, yoff=lambda i: 1 * i))
-pipe.add_vpl(Scanlines())
+#pipe.add_vpl(CoolChannelOffset(xoff=lambda i: 6 * i, yoff=lambda i: 1 * i))
+#pipe.add_vpl(Scanlines())
 
 #def transform_func(x, y, w, h):
 #    return w * np.log(x + 1) / np.log(w), y
 
 #pipe.add_vpl(Transform(func=transform_func))
 
+if args.plugins is not None:
+    for p in args.plugins:
+        # evaluate plugin additions
+        pipe.add_vpl(eval(p))
 # just output
+
+if args.files is not None:
+
+    for f in args.files:
+        # evaluate plugin additions
+        eval(open(f, "r").read())
 
 
 if args.stream is not None:

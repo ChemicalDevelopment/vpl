@@ -83,6 +83,8 @@ class VideoSource(VPL):
         elif self._type == "video":
             cap_fps = self.video_reader.get(vpl.defines.cap_prop_lookup["FPS"])
 
+        self.cap_fps = cap_fps
+
         while True:
             try:
                 st = time.time()
@@ -168,6 +170,9 @@ class VideoSource(VPL):
         if hasattr(self, "camera_fps"):
             data["camera_" + str(self._source) + "_fps"] = self.camera_fps
 
+        if hasattr(self, "cap_fps") and self.cap_fps is not None and self.cap_fps > 0:
+            data["cap_fps"] = self.cap_fps
+
         if image is None:
             pipe.quit()
 
@@ -228,7 +233,10 @@ class VideoSaver(VPL):
                 h, w, d = image.shape
                 cc_text = self.get("fourcc", "X264")
                 self.fourcc = cv2.VideoWriter_fourcc(*cc_text)
-                self.fps = self.get("fps", 24.0)
+                if "cap_fps" in data.keys():
+                    self.fps = data["cap_fps"]
+                else:
+                    self.fps = self.get("fps", 24.0)
                 self.video_out = cv2.VideoWriter(self["path"], self.fourcc, self.fps, (w, h))
 
                 loc = pathlib.Path(self["path"])
