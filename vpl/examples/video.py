@@ -17,6 +17,7 @@ parser.add_argument("--audio", default=None, help='pair the finished video with 
 
 parser.add_argument("-ns", "--no-show", action='store_true', help='use this flag to not show')
 parser.add_argument("-np", "--no-prop", action='store_true', help='use this flag to not use CameraProperties')
+parser.add_argument("--fps", default=None, type=float, help='frames per second for encoding')
 
 parser.add_argument("--dev", action='store_true', help='developer (non-install) flag')
 
@@ -99,7 +100,7 @@ if args.files is not None:
 
     for f in args.files:
         # evaluate plugin additions
-        eval(open(f, "r").read())
+        exec(open(f, "r").read())
 
 
 if args.stream is not None:
@@ -109,7 +110,11 @@ if not args.no_show:
     pipe.add_vpl(Display(title="window"))
 
 if output is not None:
-    pipe.add_vpl(VideoSaver(path=output, async=False))
+    vs = VideoSaver(path=output)#, async=True)
+    if args.fps is not None:
+        vs["fps"] = args.fps
+    pipe.add_vpl(vs)
+
 
 try:
     # we let our VideoSource do the processing, autolooping

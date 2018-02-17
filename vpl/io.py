@@ -13,6 +13,8 @@ import numpy as np
 
 import vpl
 
+import subprocess
+
 import os
 import time
 import pathlib
@@ -21,6 +23,7 @@ class VideoSource(VPL):
     """
 
     Usage: VideoSource(source=0)
+-rw-rw-r-- 1 cade cade 36M Feb 17 00:20 ../src/0.avi
 
     optional arguments:
 
@@ -75,15 +78,14 @@ class VideoSource(VPL):
         self.update_fps = 1.0 / elapsed_time if elapsed_time != 0 else -1.0
 
 
+    def update_cap_props(self):
+
+        if self._type == "video":
+            self.cap_fps = self.video_reader.get(vpl.defines.cap_prop_lookup["FPS"])
+        elif self.get("cap_fps", None) is not None:
+            self.cap_fps = self.get("cap_fps", None)
+
     def update_loop(self):
-        cap_fps = 0
-
-        if self.get("cap_fps", None) is not None:
-            cap_fps = self.get("cap_fps", None)
-        elif self._type == "video":
-            cap_fps = self.video_reader.get(vpl.defines.cap_prop_lookup["FPS"])
-
-        self.cap_fps = cap_fps
 
         while True:
             try:
@@ -91,9 +93,9 @@ class VideoSource(VPL):
                 self.update_image()
                 et = time.time()
                 dt = et - st
-                if cap_fps is not None and cap_fps > 0:
-                    if dt > 0 and dt < 1.0 / cap_fps:
-                        time.sleep(1.0 / cap_fps - dt)
+                if self.cap_fps is not None and self.cap_fps > 0:
+                    if dt > 0 and dt < 1.0 / self.cap_fps:
+                        time.sleep(1.0 / self.cap_fps - dt)
             except:
                 pass
 
@@ -157,7 +159,9 @@ class VideoSource(VPL):
                 self.set_camera_props()
                 self._type = "camera"
 
-            for i in range(self.get("burn", 1)):
+            self.update_cap_props()
+
+            for i in range(self.get("burn", 0)):
                 self.update_image()
 
             if self.is_async:
@@ -170,7 +174,7 @@ class VideoSource(VPL):
         if hasattr(self, "camera_fps"):
             data["camera_" + str(self._source) + "_fps"] = self.camera_fps
 
-        if hasattr(self, "cap_fps") and self.cap_fps is not None and self.cap_fps > 0:
+        if hasattr(self, "cap_fps") and self.cap_fps is not None and self.cap_fps > 0:            
             data["cap_fps"] = self.cap_fps
 
         if image is None:
@@ -208,9 +212,18 @@ class VideoSaver(VPL):
 
 
     def save_image(self, image, num):
+        #print ('saving ' + str(num))
         if self._type == "video":
-            if not hasattr(self, "last_time") or time.time() - self.last_time >= 1.0 / self.fps:
-                self.video_out.write(image)
+            if (not hasattr(self, "last_time") or time.time() - self.last_time >= 1.0 / self.fps) or (not self.is_async):
+                #self.video_proc.stdin.write(image.tostring())
+                #image.save(self.video_proc.stdin, "PNG")
+
+                #r = cv2.imencode(".png", image)[1]
+
+                self.video_proc.stdin.write(image.tostring())
+                self.video_proc.stdin.flush()
+
+                #self.video_out.write(image)
                 self.last_time = time.time()
 
         elif self._type == "sequence":
@@ -219,29 +232,80 @@ class VideoSaver(VPL):
 
             cv2.imwrite(str(loc), image)
 
+        self.saved_nums += [num]
+
+    def save_image_loop(self):
+        while True:
+            m_num = max(self.saved_nums, default=-1)
+
+            for i in range(len(self.pending_images)):
+                if self.pending_images[i][1] == m_num + 1:
+                    print ("saving " + str(self.pending_images[i][1]))
+                    self.save_image(self.pending_images[i][0], self.pending_images[i][1])
+                    del self.pending_images[i]
+                    break
+
 
     def process(self, pipe, image, data):
         if not hasattr(self, "num"):
             self.num = 0
 
-            self.is_async = self.get("async", True)
+            self.saved_nums = []
+            self.pending_images = []
+
+            self.is_async = False#self.get("async", True)
 
             _, ext = os.path.splitext(self["path"])
-            if ext.replace(".", "") in vpl.defines.valid_video_formats:
+            if ext.replace(".", "").lower() in vpl.defines.valid_video_formats:
                 self._type = "video"
 
                 h, w, d = image.shape
-                cc_text = self.get("fourcc", "X264")
+                #cc_text = self.get("fourcc", "H264")
+                cc_text = None
+                
+                #cc_text = self.get("fourcc", "3IVD")
+
+                cc_text = self.get("fourcc", "3IVD")#"DIB ")#"FFV1")
+
                 self.fourcc = cv2.VideoWriter_fourcc(*cc_text)
-                if "cap_fps" in data.keys():
+
+
+                if self.get("fps", None) is not None:
+                    self.fps = self["fps"]
+                elif "cap_fps" in data.keys():
                     self.fps = data["cap_fps"]
                 else:
-                    self.fps = self.get("fps", 24.0)
-                self.video_out = cv2.VideoWriter(self["path"], self.fourcc, self.fps, (w, h))
-
+                    self.fps = self.get("fps", 24.0)                    
+                
                 loc = pathlib.Path(self["path"])
                 if not loc.parent.exists():
                     loc.parent.mkdir(parents=True)
+
+
+                cmd = ['ffmpeg', '-y', 
+                    '-f', 'rawvideo',
+                    '-s', '%dx%d' % (w, h),
+                    '-vcodec', 'rawvideo',
+                    '-pix_fmt', 'bgr24',
+                    '-r', str(self.fps),
+                    '-i', '-',
+
+                    '-an',
+                    
+                    '-vcodec', self.get("vcodec", 'h264'),
+                    '-b:v', self.get("kbps", '30000k'),
+                    #'-qscale', '5',
+                    '-r', str(self.fps),
+
+                    self["path"]
+                ]
+
+                #print (" ".join(cmd))
+                self.video_proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+
+                # using opencv
+                #self.video_out = cv2.VideoWriter(self["path"], self.fourcc, self.fps, (w, h))
+                
 
             else:
                 self._type = "sequence"
@@ -251,14 +315,16 @@ class VideoSaver(VPL):
                 if not _loc.parent.exists():
                     _loc.parent.mkdir(parents=True)
 
+            if self.is_async:
+                self.do_async(self.save_image_loop, ())
         
         if self.num % self.get("every", 1) == 0:
 
             # async save it
             if self.is_async:
-                self.do_async(self.save_image, (image.copy(), self.num))
+                self.pending_images += [(image.copy(), self.num)]
             else:
-                self.save_image(image, self.num)
+                self.save_image(image.copy(), self.num)
 
         self.num += 1
 

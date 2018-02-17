@@ -1,7 +1,8 @@
 
 import time
-import threading
 
+import threading
+import multiprocessing
 
 import cv2
 import numpy as np
@@ -62,7 +63,8 @@ valid_video_formats = [
     "avi",
     "mp4",
     "mpeg",
-    "flv"
+    "flv",
+    "mts"
 ]
 
 class CameraProperties:

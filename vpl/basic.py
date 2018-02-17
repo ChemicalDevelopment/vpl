@@ -173,9 +173,11 @@ class PrintInfo(VPL):
         self.available_args["fps"] = "fps cap to display results at"
 
     def process(self, pipe, image, data):
+        if not hasattr(self, "num"):
+            self.num = 0
         if not hasattr(self, "last_time") or time.time() - self.last_time > 1.0 / self.get("fps", 3):
             if self.get("extended", False):
-                print ("image[%s]: %s" % (image.dtype, image.shape))
+                print ("(#%d) image[%s]: %s" % (self.num, image.dtype, image.shape))
                 
                 print ("total fps: %.1f" % (pipe.chain_fps[0]))
                 for i in range(len(pipe.chain)):
@@ -198,6 +200,8 @@ class PrintInfo(VPL):
             print("")
 
             self.last_time = time.time()
+
+        self.num += 1
 
         return image, data
 
