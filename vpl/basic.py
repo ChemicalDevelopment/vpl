@@ -101,6 +101,20 @@ class Bilateral(VPL):
         return res, data
 
 
+
+class ConvertColor(VPL):
+    """
+    Usage: ConvertColor(conversion=None)
+      * conversion = type of conversion (see https://docs.opencv.org/3.1.0/d7/d1b/group__imgproc__misc.html#ga4e0972be5de079fed4e3a10e24ef5ef0) ex: cv2.COLOR_BGR2HSL
+    """
+
+    def process(self, pipe, image, data):
+        if self["conversion"] is None:
+            return image, data
+        else:
+            return cv2.cvtColor(image, self["conversion"]), data
+
+
 class FPSCounter(VPL):
     """
 
@@ -208,6 +222,27 @@ class PrintInfo(VPL):
 
         self.num += 1
 
+        return image, data
+
+
+class Erode(VPL):
+    """
+
+    Usage: Erode(mask, None, iterations) 
+    
+    """
+    def process(self, pipe, image, data):
+        image = cv2.erode(image, None, iterations=self.get("iterations", 2))
+        return image, data
+
+class Dilate(VPL):
+    """
+
+    Usage: Dilate(mask, None, iterations)
+
+    """
+    def process(self, pipe, image, data):
+        image = cv2.dilate(image, None, iterations=self.get("iterations", 2))
         return image, data
 
 
