@@ -14,9 +14,11 @@ parser.add_argument("-s", "--size", default=None, type=int, nargs=2, help='size'
 
 parser.add_argument("--stream", default=None, type=int, help='port to stream to')
 parser.add_argument("--audio", default=None, help='pair the finished video with an audio file or audio stream of a video')
+parser.add_argument("--repeat", default=False, help='repeat playback (if imagesequence for source)')
 
 parser.add_argument("-ns", "--no-show", action='store_true', help='use this flag to not show')
 parser.add_argument("-np", "--no-prop", action='store_true', help='use this flag to not use CameraProperties')
+
 parser.add_argument("--fps", default=None, type=float, help='frames per second for encoding')
 
 parser.add_argument("--dev", action='store_true', help='developer (non-install) flag')
@@ -46,12 +48,9 @@ pipe = Pipeline("pipe")
 
 
 # input
-vsrc = VideoSource(source=args.source, async=False)
+vsrc = VideoSource(source=args.source, async=False, repeat=args.repeat)
 
 pipe.add_vpl(vsrc)
-
-if args.dev:
-    pipe.add_vpl(PrintInfo(fps=2, extended=True))
 
 cam_props = CameraProperties()
 
@@ -102,6 +101,8 @@ if args.files is not None:
         # evaluate plugin additions
         exec(open(f, "r").read())
 
+if args.dev:
+    pipe.add_vpl(PrintInfo(fps=2, extended=True))
 
 if args.stream is not None:
     pipe.add_vpl(MJPGServer(port=args.stream))

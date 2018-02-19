@@ -11,6 +11,8 @@ from vpl.defines import cap_prop_lookup
 import cv2
 import numpy as np
 
+import glob
+
 import vpl
 
 import subprocess
@@ -294,7 +296,6 @@ class VideoSaver(VPL):
                 loc = pathlib.Path(self["path"])
                 if not loc.parent.exists():
                     loc.parent.mkdir(parents=True)
-
 
                 cmd = ['ffmpeg', '-y', 
                     '-f', 'rawvideo',

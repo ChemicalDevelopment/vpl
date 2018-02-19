@@ -343,5 +343,89 @@ class Transform(VPL):
 
 
 
+class Glitcher(VPL):
+
+    """
+
+    For randomly adding glitches
+
+    """
+
+    def register(self):
+        pass
+
+
+    def process(self, pipe, image, data):
+
+        if not hasattr(self, "is_init"):
+            self.is_init = True
+            self.h_off = None
+            self.w_off = None
+
+        h, w, d = image.shape
+
+        hseed = random.random()
+        wseed = random.random()
+
+        fc = .24
+
+        hchance = 0.1 * fc if self.h_off is None else .4 * fc
+        wchance = 0.08 * fc if self.w_off is None else .38 * fc
+
+        if hseed < hchance:
+            if self.h_off is None:
+                self.h_off = random.randint(-h // 3, h // 3)
+            else:
+                self.h_off = None
+
+        if wseed < wchance:
+            if self.w_off is None:
+                self.w_off = random.randint(-w // 3, w // 3)
+            else:
+                self.w_off = None
+
+
+        if self.h_off is not None:
+            image = np.roll(image, self.h_off, 1)
+
+
+        if self.w_off is not None:
+            image = np.roll(image, self.w_off, 0)
+
+        return image, data
+
+
+
+class Darken(VPL):
+
+    """
+
+    For darkening an image
+
+    """
+
+    def register(self):
+        pass
+
+
+    def process(self, pipe, image, data):
+        h, w, d = image.shape
+
+        fac = self.get("fac", .8)
+
+        image = (image.astype(np.float32) * fac).astype(np.uint8)
+
+        return image, data
+
+
+
+
+
+
+
+
+
+
+
 
 
