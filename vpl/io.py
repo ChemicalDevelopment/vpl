@@ -114,7 +114,12 @@ class VideoSource(VPL):
 
     def get_image(self):
         if not self.is_async:
+            st = time.time()
             self.update_image()
+            et = time.time()
+            dt = et - st
+            self.camera_fps = 1.0 / dt if dt > 0 else 0
+
         return self.camera_image
 
     def process(self, pipe, image, data):
