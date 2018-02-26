@@ -27,7 +27,7 @@ Streaming Parameters Video Capture:
 
 DEVICE="/dev/video0"
 
-if [ $# -neq 0 ]; then
+if [ -z "$1" ]; then
     DEVICE="$1"
 fi
 
