@@ -27,6 +27,12 @@ Streaming Parameters Video Capture:
 
 DEVICE="/dev/video0"
 
+if [ $# -neq 0 ]; then
+    DEVICE="$1"
+fi
+
+echo "resetting $DEVICE"
+
 v4l2-ctl -d $DEVICE -c brightness=133
 v4l2-ctl -d $DEVICE -c contrast=5
 v4l2-ctl -d $DEVICE -c saturation=83
