@@ -28,6 +28,8 @@ Streaming Parameters Video Capture:
 DEVICE="/dev/video0"
 
 if [ -z "$1" ]; then
+    echo "default device"
+else
     DEVICE="$1"
 fi
 
