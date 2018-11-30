@@ -112,6 +112,8 @@ class VideoSource(VPL):
         if props != None:
             for p in props.props:
                 #print ("setting: " + str(cap_prop_lookup[p]) + " to: " + str(type(props[p])))
+                if p not in cap_prop_lookup.keys():
+                    raise Exception("Unknown camera property: '%s'" % p)
                 self.camera.set(cap_prop_lookup[p], props[p])
 
     def get_image(self):
@@ -130,7 +132,7 @@ class VideoSource(VPL):
             self.has_init = True
 
             # default async is false
-            self.is_async = self.get("async", False)
+            self.is_async = self.get("is_async", False)
 
             source = self.get("source", 0)
 
@@ -269,7 +271,7 @@ class VideoSaver(VPL):
             self.saved_nums = []
             self.pending_images = []
 
-            self.is_async = False#self.get("async", True)
+            self.is_async = False#self.get("is_async", True)
 
             _, ext = os.path.splitext(self["path"])
             if ext.replace(".", "").lower() in vpl.defines.valid_video_formats:
@@ -360,7 +362,15 @@ class Display(VPL):
 
     def process(self, pipe, image, data):
 
-        cv2.imshow(self["title"], image)
+        if not hasattr(self, "is_init"):
+            cv2.namedWindow(self["title"])
+            self.is_init = True
+            
+        cv2.imshow(self["title"], np.abs(image))
+
         cv2.waitKey(1)
+
+        if cv2.getWindowProperty(self["title"], cv2.WND_PROP_VISIBLE) <= 0:
+            pipe.quit()
 
         return image, data

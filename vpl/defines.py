@@ -365,7 +365,7 @@ class ForkVPL(VPL):
     """
 
     def process(self, pipe, image, data):
-        if self.get("async", False):
+        if self.get("is_async", False):
             self.do_async(self["pipe"].process, (image.copy(), data.copy()))
         else:
             self["pipe"].process(image.copy(), data.copy())

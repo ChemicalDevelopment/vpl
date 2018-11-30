@@ -73,6 +73,6 @@ Streaming Parameters Video Capture:
 
 ```
 
-
+ 
 Use the script `utils/reset_lifecam.sh`
 

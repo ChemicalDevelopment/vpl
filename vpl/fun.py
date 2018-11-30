@@ -16,7 +16,6 @@ class CoolChannelOffset(VPL):
 
     def process(self, pipe, image, data):
         h, w, nch = image.shape
-        ch = cv2.split(image)
 
         xoff_gen = self.get("xoff", lambda i: 8 * i)
         yoff_gen = self.get("yoff", lambda i: -2.5 * i)
@@ -24,10 +23,7 @@ class CoolChannelOffset(VPL):
         for i in range(nch):
             xoff = xoff_gen * i if type(xoff_gen) == int else int(xoff_gen(i)) 
             yoff = yoff_gen * i if type(yoff_gen) == int else int(yoff_gen(i)) 
-            ch[i] = np.roll(np.roll(image[:,:,i], yoff, 0), xoff, 1)
-            #image[:,:,i] = np.roll(image[:,:,i], 10, 1)
-
-        image = cv2.merge(ch)
+            image[:,:,i] = np.roll(np.roll(image[:,:,i], yoff, 0), xoff, 1)
 
         return image, data
 
@@ -416,6 +412,34 @@ class Darken(VPL):
         image = (image.astype(np.float32) * fac).astype(np.uint8)
 
         return image, data
+
+
+class Threshold(VPL):
+
+    """
+
+    For darkening an image
+
+    """
+
+    def register(self):
+        pass
+
+
+    def process(self, pipe, image, data):
+        h, w, d = image.shape
+
+        threshold = self.get("threshold", 0.1)
+
+        nimg = image.astype(np.float32)
+
+        image[nimg < threshold * 255] = 0
+
+        return image, data
+
+
+
+
 
 
 

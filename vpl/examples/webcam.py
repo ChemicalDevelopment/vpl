@@ -36,12 +36,7 @@ pipe = Pipeline("pipe")
 
 
 # input
-vsrc = VideoSource(source=args.source, async=not args.sync)
-
-pipe.add_vpl(vsrc)
-
-if args.dev:
-    pipe.add_vpl(PrintInfo(fps=2, extended=True))
+vsrc = VideoSource(source=args.source, is_async=not args.sync)
 
 cam_props = CameraProperties()
 
@@ -56,10 +51,16 @@ if args.auto_exposure is not None and not args.no_prop:
 # set preferred width and height
 if args.size is not None and not args.no_prop:
     cam_props["FRAME_WIDTH"] = args.size[0]
-    cam_props["FRAME_HEIGHT"] = args.size[1]
+    cam_props["FRAME_HEIGHTF"] = args.size[1]
 
 vsrc["properties"] = cam_props
 
+pipe.add_vpl(vsrc)
+
+
+# dev
+if args.dev:
+    pipe.add_vpl(PrintInfo(fps=2, extended=True))
 
 #if args.size is not None:
 #    pipe.add_vpl(Resize(w=args.size[0], h=args.size[1]))
@@ -99,7 +100,7 @@ if not args.no_show:
     pipe.add_vpl(Display(title="window"))
 
 if args.output:
-    pipe.add_vpl(VideoSaver(path=args.output, async=not args.sync))
+    pipe.add_vpl(VideoSaver(path=args.output, is_async=not args.sync))
 
 try:
     # we let our VideoSource do the processing, autolooping

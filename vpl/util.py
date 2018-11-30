@@ -17,6 +17,14 @@ def pair_video_audio(output, video, audio, ffmpeg_bin="ffmpeg"):
     print (cmd)
     print (" ".join(cmd))
 
-    r = subprocess.call(cmd)
-    if r != 0:
-        print ("error return code while pairing video and audio: " + str(r))
+    r = -1
+
+    try:
+        r = subprocess.call(cmd)
+        if r != 0:
+            print ("ERROR: eturn code while pairing video and audio: " + str(r))
+
+    except Exception as e:
+        print ("ERROR: problem pairing video to audio (msg: '%s'" % str(e))
+
+

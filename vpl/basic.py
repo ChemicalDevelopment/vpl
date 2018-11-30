@@ -45,6 +45,48 @@ class Resize(VPL):
             # if it is the correct size, don't spend time resizing it
             return image, data
 
+class FFT(VPL):
+
+    """
+
+    Usage: FFT()
+
+    Transforms the image into the FFT image
+
+    """
+
+    def register(self):
+        pass
+
+    def process(self, pipe, image, data):
+        Bfft, Gfft, Rfft = np.fft.rfft2(image[:,:,0]), np.fft.rfft2(image[:,:,1]), np.fft.rfft2(image[:,:,2])
+
+        filt_mask = np.zeros((Bfft.shape[0], Bfft.shape[1]), np.complex)
+        max_dist = 1.0 + filt_mask.shape[1] / filt_mask.shape[0]
+        for i in range(0, filt_mask.shape[0]):
+            for j in range(0, filt_mask.shape[1]):
+                prop = (i + j) / (max_dist * filt_mask.shape[0])
+                #if prop < 0.04 or prop > 0.92:
+                filt_mask[i, j] = 1.0 * np.exp(1j * 2 * math.pi * 0.1)
+                #else:
+                #    filt_mask[i, j] = 0.0
+
+
+        Bfft *= filt_mask
+        Gfft *= filt_mask
+        Rfft *= filt_mask
+
+        #result = np.zeros((image.shape[0], image.shape[1]//2+1, 3), dtype=np.float32)
+
+        #result[:,:,0] = 4.0 * np.abs(np.fft.rfft2(B)) / (image.shape[0] * image.shape[1])
+
+        image[:,:,0] = np.fft.irfft2(Bfft)
+        image[:,:,1] = np.fft.irfft2(Gfft)
+        image[:,:,2] = np.fft.irfft2(Rfft)
+        #image[:,:321,0] = np.abs(Bfft) / 321
+        #image[:,:321,1] = np.abs(Gfft) / 321
+        #image[:,:321,2] = np.abs(Rfft) / 321
+        return image, data
 
 
 class Blur(VPL):

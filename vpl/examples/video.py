@@ -9,31 +9,35 @@ import argparse
 
 parser = argparse.ArgumentParser(description='video processor')
 
-parser.add_argument("source", nargs='?', default=0, help='camera source (can be video file)')
-parser.add_argument("-s", "--size", default=None, type=int, nargs=2, help='size')
-
-parser.add_argument("--stream", default=None, type=int, help='port to stream to')
-parser.add_argument("--audio", default=None, help='pair the finished video with an audio file or audio stream of a video')
-parser.add_argument("--repeat", default=False, help='repeat playback (if imagesequence for source)')
-
-parser.add_argument("-ns", "--no-show", action='store_true', help='use this flag to not show')
+parser.add_argument("source", nargs='?', default=0, help='camera source (can be video file as well) default is \'0\'')
 parser.add_argument("-np", "--no-prop", action='store_true', help='use this flag to not use CameraProperties')
+parser.add_argument("-i-s", "--input-size", default=None, type=str,  help="input size (WxH) to scale/request input as")
+parser.add_argument("-loop", default=False, help='loop playback (i.e. play video over and over again)')
 
-parser.add_argument("--fps", default=None, type=float, help='frames per second for encoding')
-
-parser.add_argument("--dev", action='store_true', help='developer (non-install) flag')
-
-parser.add_argument("-o", "--output", default=None, help='output file')
 
 parser.add_argument('-p','--plugins', nargs='*', help='Add plugins')
 parser.add_argument('-f','--files', nargs='*', help='Add file executors')
+
+
+parser.add_argument("-ns", "--no-show", action='store_true', help='use this flag to not show')
+
+parser.add_argument("-mjpg", "--mjpg-port", default=None, type=int, help='port to stream MJPG server to')
+
+parser.add_argument("-o", "--output", default=None, help='output file')
+
+parser.add_argument("-o-audio", "--output-audio", default=None, help='pair the finished video with an audio file or audio stream of a video (requires FFMPEG)')
+
+parser.add_argument("-o-fps", "--output-fps", default=None, type=float, help='frames per second for encoding')
+
+parser.add_argument("--dev", action='store_true', help='developer (non-install) flag')
+
 
 args = parser.parse_args()
 
 final_output = args.output
 output = args.output
 
-if args.audio is not None and args.output is not None:
+if args.output_audio is not None and args.output is not None:
     output = tempfile.mkstemp(suffix="." + args.output.split(".")[-1])[1]
 
 if args.dev:
@@ -46,26 +50,25 @@ from vpl.all import *
 
 pipe = Pipeline("pipe")
 
-
 # input
-vsrc = VideoSource(source=args.source, async=False, repeat=args.repeat)
-
-pipe.add_vpl(vsrc)
+vsrc = VideoSource(source=args.source, is_async=False, repeat=args.loop)
 
 cam_props = CameraProperties()
 
 cam_props["FPS"] = 60.0
 
 # set preferred width and height
-if args.size is not None and not args.no_prop:
-    cam_props["FRAME_WIDTH"] = args.size[0]
-    cam_props["FRAME_HEIGHT"] = args.size[1]
+if args.input_size is not None and not args.no_prop:
+    cam_props["FRAME_WIDTH"] = args.input_size[0]
+    cam_props["FRAME_HEIGHT"] = args.input_size[1]
 
 vsrc["properties"] = cam_props
 
+pipe.add_vpl(vsrc)
 
-if args.size is not None:
-    pipe.add_vpl(Resize(w=args.size[0], h=args.size[1]))
+
+if args.input_size is not None:
+    pipe.add_vpl(Resize(w=args.input_size[0], h=args.input_size[1]))
 
 # processing here
 
@@ -104,16 +107,16 @@ if args.files is not None:
 if args.dev:
     pipe.add_vpl(PrintInfo(fps=2, extended=True))
 
-if args.stream is not None:
-    pipe.add_vpl(MJPGServer(port=args.stream))
+if args.mjpg_port is not None:
+    pipe.add_vpl(MJPGServer(port=args.mjpg_port))
 
 if not args.no_show:
     pipe.add_vpl(Display(title="window"))
 
 if output is not None:
-    vs = VideoSaver(path=output)#, async=True)
-    if args.fps is not None:
-        vs["fps"] = args.fps
+    vs = VideoSaver(path=output)#, is_async=True)
+    if args.output_fps is not None:
+        vs["fps"] = args.output_fps
     pipe.add_vpl(vs)
 
 
@@ -127,6 +130,6 @@ print ("gracefully ending")
 
 pipe.end()
 
-if args.audio is not None and args.output is not None:
-    pair_video_audio(final_output, output, args.audio)
+if args.output_audio is not None and args.output is not None:
+    pair_video_audio(final_output, output, args.output_audio)
 
