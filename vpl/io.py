@@ -50,7 +50,34 @@ class VideoSource(VPL):
         self.camera_flag, self.camera_image = self.camera.read()
 
     def video_reader_update_image(self):
-        _, self.camera_image = self.video_reader.read()
+
+        if len(self.images) < 1 or self.images[-1] is not None:
+            # we are still reading
+            my_idx = self.images_idx
+
+            _, _img = self.video_reader.read()
+
+            if not _:
+                self.images_idx = 0
+                self.images += [None]
+            else:
+                self.images += [_img]
+                self.camera_image = _img
+                return
+
+        if self.get("repeat", False):
+            # looping back through them
+            my_idx = self.images_idx
+
+            my_idx = my_idx % (len(self.images) - 1)
+
+            self.images_idx += 1
+
+            self.camera_image = self.images[my_idx]
+            return
+
+        return False, None
+
 
     def image_sequence_update_image(self):
         my_idx = self.images_idx
@@ -153,18 +180,24 @@ class VideoSource(VPL):
             elif isinstance(source, str):
                 _, extension = os.path.splitext(source)
                 extension = extension.replace(".", "").lower()
+
+
                 if extension in vpl.defines.valid_image_formats:
                     # have an image sequence
                     self.image_sequence_sources = glob.glob(source)
-                    self.images = [None] * len(self.image_sequence_sources)
-                    self.images_idx = 0
 
                     self._type = "sequence"
-                
+
+                    self.images_idx = 0
+                    self.images = [None] * len(self.image_sequence_sources)
+
                 elif extension in vpl.defines.valid_video_formats:
                     # read from a video file
                     self.video_reader = cv2.VideoCapture(source)
                     self._type = "video"
+                    self.images_idx = 0
+
+                    self.images = []
                 else:
                     raise Exception("unknown source type:" + str(source))
 

@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(description='video processor')
 parser.add_argument("source", nargs='?', default=0, help='camera source (can be video file as well) default is \'0\'')
 parser.add_argument("-np", "--no-prop", action='store_true', help='use this flag to not use CameraProperties')
 parser.add_argument("-i-s", "--input-size", default=None, type=str,  help="input size (WxH) to scale/request input as")
-parser.add_argument("-loop", default=False, help='loop playback (i.e. play video over and over again)')
+parser.add_argument("-loop", action='store_true', help='loop playback (i.e. play video over and over again)')
 
 
 parser.add_argument('-p','--plugins', nargs='*', help='Add plugins')

@@ -29,6 +29,14 @@ To record, use `-o`:
 
 The recording to video is glitchy, so it is recomended to render to individual frames
 
+# Creating a video
+
+Say you have output to `tmp/{num}.jpg` at `24` frames per second, and you want to create a `.mp4` file
+
+You can do this with: 
+
+`ffmpeg -r 24 -i tmp/%08d.jpg -c:v libx264 -vf fps=24 -pix_fmt yuv420p out.mp4`
+
 # exposure settings
 
 Exposure settings are extremely finicky to get working. Here's a few commands to try:
