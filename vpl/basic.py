@@ -288,5 +288,185 @@ class Dilate(VPL):
         return image, data
 
 
+import pyopencl as cl
+
+class OpenCL(VPL):
+
+    def register(self):
+        pass
+
+    def process(self, pipe, image, data):
+
+        if not hasattr(self, "is_init"):
+            OPENCL_SRC="""
+__kernel void convert(__global __read_only uchar * img_in, __global __write_only uchar * img_out, int w, int h) {
+        int x = get_global_id(0), y = get_global_id(1);
+        if (x >= w || y >= h) return;
+        int idx = x + y * w;
+        // img_in[3*idx+0] = R component at pixel x, y
+        // img_in[3*idx+1] = G component at pixel x, y
+        // img_in[3*idx+2] = B component at pixel x, y
+
+        int ker = 20;
+
+        // new components
+        float nR = 0, nG = 0, nB = 0;
+
+        int i, j;
+        int tx, ty;
+        float c_sum = 0.0f;
+        for (i = -ker; i <= ker; ++i) {
+            tx = x + i;
+            if (tx < 0 || tx >= w) continue;
+            for (j = -ker; j <= ker; ++j) {
+                ty = y + i;
+                if (ty < 0 || ty >= h) continue;
+                int tidx = tx + ty * w;
+                // window value
+                //float w = 1.0f - (abs(i) + abs(j)) / (2.0f * ker);
+                //float w = i == 0 && j == 0 ? 1.0f : 0.0f;
+
+                float c = exp(-powf(abs(i) + abs(j), 2.0f) / (ker * ker));
+                nR += c * img_in[3*tidx+0];
+                nG += c * img_in[3*tidx+1];
+                nB += c * img_in[3*tidx+2];
+                c_sum += c;
+            }
+        }
+
+        img_out[3 * idx + 2] = (uchar)(nR / c_sum);
+        img_out[3 * idx + 1] = (uchar)(nG / c_sum);
+        img_out[3 * idx + 0] = (uchar)(nB / c_sum);
+    }
+"""
+            mf = cl.mem_flags
+
+            platform = cl.get_platforms()[self.get("opencl_platform", 0)]
+            devs = platform.get_devices()[self.get("opencl_device", -1)]
+            self.ctx = cl.Context(devs if isinstance(devs, list) else [devs])
+            self.queue = cl.CommandQueue(self.ctx)
+
+            # now build the programs
+            self.prg = cl.Program(self.ctx, OPENCL_SRC).build()
+
+            self.src_buf = cl.Buffer(self.ctx, mf.READ_ONLY, image.nbytes)
+            self.dest_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, image.nbytes)
+            self.dest = np.empty_like(image)
+
+            # we have initialized
+            self.is_init = True
+
+        h, w, _ = image.shape
+
+        # write current image
+        cl.enqueue_copy(self.queue, self.src_buf, image)
+
+        self.prg.convert(self.queue, (w, h), None, self.src_buf, self.dest_buf, np.int32(w), np.int32(h))
+        
+        # read back image
+        cl.enqueue_copy(self.queue, self.dest, self.dest_buf)
+
+        return self.dest, data
+
+
+class OpenCLConvolve(VPL):
+
+    def register(self):
+        pass
+
+    def process(self, pipe, image, data):
+
+        if not hasattr(self, "is_init"):
+            # loop unrolling on mask
+            mask = np.array(self.get("kernel", [[0, 0, 0], [0, 1, 0], [0, 0, 0]])) * self.get("factor", 1.0)
+            
+            if mask.shape[0] != mask.shape[1]:
+                print ("WARNING: mask should be square for convolution!")
+
+            if mask.shape[0] % 2 != 1:
+                print ("WARNING: mask should be an odd length")
+
+            single_val_codeblock = """
+            tx = x + {i};
+            ty = y + {j};
+            if (tx >= 0 && tx < w && ty >= 0 && ty < h) {{
+                tidx = tx + ty * w;
+                c = (float)({MASK_VAL});
+                nR += c * (float)img_in[3*tidx+0];
+                nG += c * (float)img_in[3*tidx+1];
+                nB += c * (float)img_in[3*tidx+2];
+            }}
+            """
+
+            kernel_unfolded = ""
+
+            for i in range(0, mask.shape[0]):
+                for j in range(0, mask.shape[1]):
+                    if mask[j, i] != 0:
+                        print(i, j, mask[j, i])
+                        cur_cb = single_val_codeblock.format(i=i - mask.shape[0] // 2, j=mask.shape[0] // 2 - j, MASK_VAL=mask[j, i])
+                        kernel_unfolded += cur_cb
+
+            print (kernel_unfolded)
+
+            OPENCL_SRC="""
+__kernel void convert(__global __read_only uchar * img_in, __global __write_only uchar * img_out, int w, int h) {{
+        int x = get_global_id(0), y = get_global_id(1);
+        if (x >= w || y >= h) return;
+        int idx = x + y * w;
+        // img_in[3*idx+0] = R component at pixel x, y
+        // img_in[3*idx+1] = G component at pixel x, y
+        // img_in[3*idx+2] = B component at pixel x, y
+
+        // new components
+        float nR = 0, nG = 0, nB = 0;
+
+        int tx, ty, tidx;
+        float c;
+
+        // AUTOGEN START
+
+        {gen_code}
+
+        // AUTOGEN END
+
+        
+
+        img_out[3 * idx + 0] = (uchar)clamp(nR, 0.0f, 255.0f);
+        img_out[3 * idx + 1] = (uchar)clamp(nG, 0.0f, 255.0f);
+        img_out[3 * idx + 2] = (uchar)clamp(nB, 0.0f, 255.0f);
+    }}
+""".format(gen_code=kernel_unfolded)
+
+            #print(OPENCL_SRC)
+
+            mf = cl.mem_flags
+
+            platform = cl.get_platforms()[self.get("opencl_platform", 0)]
+            devs = platform.get_devices()[self.get("opencl_device", -1)]
+            self.ctx = cl.Context(devs if isinstance(devs, list) else [devs])
+            self.queue = cl.CommandQueue(self.ctx)
+
+            # now build the programs
+            self.prg = cl.Program(self.ctx, OPENCL_SRC).build()
+
+            self.src_buf = cl.Buffer(self.ctx, mf.READ_ONLY, image.nbytes)
+            self.dest_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, image.nbytes)
+            self.dest = np.empty_like(image)
+
+            # we have initialized
+            self.is_init = True
+
+        h, w, _ = image.shape
+
+        # write current image
+        cl.enqueue_copy(self.queue, self.src_buf, image)
+
+        self.prg.convert(self.queue, (w, h), None, self.src_buf, self.dest_buf, np.int32(w), np.int32(h))
+        
+        # read back image
+        cl.enqueue_copy(self.queue, self.dest, self.dest_buf)
+
+        return self.dest, data
 
 

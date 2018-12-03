@@ -330,6 +330,8 @@ class Transform(VPL):
         func = self.get("func", lambda x, y, w, h: (x, y))
         # ex: func=lambda x, y, w, h: (w * np.log(x+1) / np.log(w), h * np.log(y+1) / np.log(h))
         # this does log transofmr
+        # ex: func=lambda x, y, w, h: (x , )
+
 
         map_x, map_y = np.fromfunction(lambda y, x: func(x, y, w, h), (h, w), dtype=np.float32)
 
