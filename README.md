@@ -11,11 +11,23 @@ Or `pip3 install -e git://github.com/chemicaldevelopment/vpl` (for development, 
 
 # usage
 
+You can use `import vpl` in your code
+
+## Commandline
+
 It comes with a simple viewer, run:
 
-`python3 -mvpl --help`
+`python3 -mvpl video 0`
 
-You can use `import vpl` in your code
+You can change `0` to higher numbers if you have multiple cameras connected. Or, you can change it to a file name to use the video as input:
+
+`python3 -mvpl video ~/path/video.mp4`
+
+To record, use `-o`:
+
+`python3 -mvpl video 0 -o tmp/{num}.jpg`
+
+The recording to video is glitchy, so it is recomended to render to individual frames
 
 # exposure settings
 

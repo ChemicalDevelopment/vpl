@@ -283,7 +283,7 @@ class VideoSaver(VPL):
                 
                 #cc_text = self.get("fourcc", "3IVD")
 
-                cc_text = self.get("fourcc", "3IVD")#"DIB ")#"FFV1")
+                cc_text = self.get("fourcc", "DIVX")#"3IVD")#"DIB ")#"FFV1")
 
                 self.fourcc = cv2.VideoWriter_fourcc(*cc_text)
 
@@ -293,7 +293,7 @@ class VideoSaver(VPL):
                 elif "cap_fps" in data.keys():
                     self.fps = data["cap_fps"]
                 else:
-                    self.fps = self.get("fps", 24.0)                    
+                    self.fps = self.get("fps", 24)                    
                 
                 loc = pathlib.Path(self["path"])
                 if not loc.parent.exists():

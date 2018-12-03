@@ -8,6 +8,8 @@
 *.o
 
 
+/tmp/
+
 test.py
 
 # Setuptools distribution folder.

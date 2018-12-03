@@ -59,8 +59,9 @@ cam_props["FPS"] = 60.0
 
 # set preferred width and height
 if args.input_size is not None and not args.no_prop:
-    cam_props["FRAME_WIDTH"] = args.input_size[0]
-    cam_props["FRAME_HEIGHT"] = args.input_size[1]
+    split = args.input_size.split("x")
+    cam_props["FRAME_WIDTH"] = int(split[0])
+    cam_props["FRAME_HEIGHT"] = int(split[1])
 
 vsrc["properties"] = cam_props
 
@@ -68,7 +69,8 @@ pipe.add_vpl(vsrc)
 
 
 if args.input_size is not None:
-    pipe.add_vpl(Resize(w=args.input_size[0], h=args.input_size[1]))
+    split = args.input_size.split("x")
+    pipe.add_vpl(Resize(w=int(split[0]), h=int(split[1])))
 
 # processing here
 
@@ -114,7 +116,7 @@ if not args.no_show:
     pipe.add_vpl(Display(title="window"))
 
 if output is not None:
-    vs = VideoSaver(path=output)#, is_async=True)
+    vs = VideoSaver(path=output, is_async=False)
     if args.output_fps is not None:
         vs["fps"] = args.output_fps
     pipe.add_vpl(vs)
