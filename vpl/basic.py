@@ -14,10 +14,13 @@ import cv2
 
 import time
 
+import scipy as sp
+from scipy import signal, ndimage
+
 class Resize(VPL):
     """
 
-    Usage: Resize(w=512, h=256)
+    Usage: Resize(size=(w, h))
 
       * "w" = width, in pixels
       * "h" = height, in pixels
@@ -33,103 +36,62 @@ class Resize(VPL):
         self.available_args["h"] = "height in pixels"
 
     def process(self, pipe, image, data):
-        height, width, depth = image.shape
+        h_in, w_in, _= image.shape
+        w_out, h_out = self.get("size", (None, None))
 
-        if width != self["w"] or height != self["h"]:
-            resize_method = self.get("method", cv2.INTER_LINEAR)
-            #t = cv2.UMat(image)
-            t = image
-            r = cv2.resize(t, (self["w"], self["h"]), interpolation=resize_method)
-            return r, data
-        else:
+        # if one is 'None', replace it with the preexisting
+        if w_out is None: w_out = w_in
+        if h_out is None: h_out = h_in
+
+        if w_out == w_in and h_out == h_in:
             # if it is the correct size, don't spend time resizing it
             return image, data
-
-class FFT(VPL):
-
-    """
-
-    Usage: FFT()
-
-    Transforms the image into the FFT image
-
-    """
-
-    def register(self):
-        pass
-
-    def process(self, pipe, image, data):
-        Bfft, Gfft, Rfft = np.fft.rfft2(image[:,:,0]), np.fft.rfft2(image[:,:,1]), np.fft.rfft2(image[:,:,2])
-
-        filt_mask = np.zeros((Bfft.shape[0], Bfft.shape[1]), np.complex)
-        max_dist = 1.0 + filt_mask.shape[1] / filt_mask.shape[0]
-        for i in range(0, filt_mask.shape[0]):
-            for j in range(0, filt_mask.shape[1]):
-                prop = (i + j) / (max_dist * filt_mask.shape[0])
-                #if prop < 0.04 or prop > 0.92:
-                filt_mask[i, j] = 1.0 * np.exp(1j * 2 * math.pi * 0.1)
-                #else:
-                #    filt_mask[i, j] = 0.0
-
-
-        Bfft *= filt_mask
-        Gfft *= filt_mask
-        Rfft *= filt_mask
-
-        #result = np.zeros((image.shape[0], image.shape[1]//2+1, 3), dtype=np.float32)
-
-        #result[:,:,0] = 4.0 * np.abs(np.fft.rfft2(B)) / (image.shape[0] * image.shape[1])
-
-        image[:,:,0] = np.fft.irfft2(Bfft)
-        image[:,:,1] = np.fft.irfft2(Gfft)
-        image[:,:,2] = np.fft.irfft2(Rfft)
-        #image[:,:321,0] = np.abs(Bfft) / 321
-        #image[:,:321,1] = np.abs(Gfft) / 321
-        #image[:,:321,2] = np.abs(Rfft) / 321
-        return image, data
+        else:
+            resize_method = self.get("method", cv2.INTER_CUBIC)
+            #t = cv2.UMat(image)
+            r = cv2.resize(image, (w_out, h_out), interpolation=resize_method)
+            return r, data
 
 
 class Blur(VPL):
     """
 
-    Usage: Blur(w=4, h=8)
+    Usage: Blur(kernel=(w=5, h=5))
 
       * "w" = width, in pixels (for guassian blur, w % 2 == 1) (for median blur, this must be an odd integer greater than 1 (3, 5, 7... are good))
       * "h" = height, in pixels (for guassian blur, w % 2 == 1) (for median blur, this is ignored)
 
     optional arguments:
 
-      * "method" = opencv blur method, default is vpl.BlurType.BOX
+      * "method" = opencv blur method
       * "sx" = 'sigma x' for the Gaussian blur standard deviation, defaults to letting OpenCV choose based on image size
       * "sy" = 'sigma y' for the Gaussian blur standard deviation, defaults to letting OpenCV choose based on image size
 
     """
 
     def register(self):
-        self.available_args["w"] = "width in pixels for blur kernel"
-        self.available_args["h"] = "height in pixels for blur kernel"
+        self.available_args["kernel"] = "width, height in pixels for blur kernel (for median blur, only width is used)"
 
         self.available_args["method"] = "method of blurring, 'box', 'median', 'guassian' are all good"
 
-        self.available_args["sx"] = "sigma x (guassian only)"
-        self.available_args["sy"] = "sigma y (guassian only)"
-
+        self.available_args["sigma"] = "sigma x, y (guassian only)"
 
 
     def process(self, pipe, image, data):
-        if self["w"] in (0, None) or self["h"] in (0, None):
+        w_k, h_k = self.get("kernel", (0, 0))
+        if w_k in (0, None) or h_k in (0, None):
             return image, data
         else:
             resize_method = self.get("method", "box")
 
             if resize_method == "guassian":
-                sx, sy = self.get("sx", 0), self.get("sy", 0)
-                return cv2.GaussianBlur(image, (self["w"], self["h"]), sigmaX=sx, sigmaY=sy), data
+                sx, sy = self.get("sigma", (0, 0))
+                return cv2.GaussianBlur(image, (w_k, h_k), sigmaX=sx, sigmaY=sy), data
             elif resize_method == "median":
-                return cv2.medianBlur(image, self["w"]), data
+                return cv2.medianBlur(image, w_k), data
             else:
-                # default is BlurType.BOX
-                return cv2.blur(image, (self["w"], self["h"])), data
+                # default is box blur type
+                return cv2.blur(image, (w_k, h_k)), data
 
 
 class Bilateral(VPL):
@@ -202,14 +164,6 @@ class FPSCounter(VPL):
 class Grayscale(VPL):
     """
 
-    Usage: Resize(w=512, h=256)
-
-      * "w" = width, in pixels
-      * "h" = height, in pixels
-
-    optional arguments:
-
-      * "method" = opencv resize method, default is cv2.INTER_LINEAR
 
     """
 
@@ -217,7 +171,7 @@ class Grayscale(VPL):
         pass
 
     def process(self, pipe, image, data):
-        r, g, b = image[:,:,2], image[:,:,1], image[:,:,0]
+        r, g, b = image[:,:,0], image[:,:,1], image[:,:,2]
         atype = np.float32
         bw = ((r.astype(atype) + g.astype(atype) + b.astype(atype)) / 3.0).astype(image.dtype)
 
@@ -288,85 +242,30 @@ class Dilate(VPL):
         return image, data
 
 
-import pyopencl as cl
+class Distort(VPL):
+    """
 
-class OpenCL(VPL):
+    Usage: Dilate(mask, None, iterations)
 
+    """
+    def process(self, pipe, image, data):
+        image = image.astype(np.float32) / 255.0
+        image = image * 7.5
+        return (255 * image).astype(np.uint8), data
+
+
+
+
+class Convolve(VPL):
+    
     def register(self):
         pass
 
     def process(self, pipe, image, data):
-
-        if not hasattr(self, "is_init"):
-            OPENCL_SRC="""
-__kernel void convert(__global __read_only uchar * img_in, __global __write_only uchar * img_out, int w, int h) {
-        int x = get_global_id(0), y = get_global_id(1);
-        if (x >= w || y >= h) return;
-        int idx = x + y * w;
-        // img_in[3*idx+0] = R component at pixel x, y
-        // img_in[3*idx+1] = G component at pixel x, y
-        // img_in[3*idx+2] = B component at pixel x, y
-
-        int ker = 20;
-
-        // new components
-        float nR = 0, nG = 0, nB = 0;
-
-        int i, j;
-        int tx, ty;
-        float c_sum = 0.0f;
-        for (i = -ker; i <= ker; ++i) {
-            tx = x + i;
-            if (tx < 0 || tx >= w) continue;
-            for (j = -ker; j <= ker; ++j) {
-                ty = y + i;
-                if (ty < 0 || ty >= h) continue;
-                int tidx = tx + ty * w;
-                // window value
-                //float w = 1.0f - (abs(i) + abs(j)) / (2.0f * ker);
-                //float w = i == 0 && j == 0 ? 1.0f : 0.0f;
-
-                float c = exp(-powf(abs(i) + abs(j), 2.0f) / (ker * ker));
-                nR += c * img_in[3*tidx+0];
-                nG += c * img_in[3*tidx+1];
-                nB += c * img_in[3*tidx+2];
-                c_sum += c;
-            }
-        }
-
-        img_out[3 * idx + 2] = (uchar)(nR / c_sum);
-        img_out[3 * idx + 1] = (uchar)(nG / c_sum);
-        img_out[3 * idx + 0] = (uchar)(nB / c_sum);
-    }
-"""
-            mf = cl.mem_flags
-
-            platform = cl.get_platforms()[self.get("opencl_platform", 0)]
-            devs = platform.get_devices()[self.get("opencl_device", -1)]
-            self.ctx = cl.Context(devs if isinstance(devs, list) else [devs])
-            self.queue = cl.CommandQueue(self.ctx)
-
-            # now build the programs
-            self.prg = cl.Program(self.ctx, OPENCL_SRC).build()
-
-            self.src_buf = cl.Buffer(self.ctx, mf.READ_ONLY, image.nbytes)
-            self.dest_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, image.nbytes)
-            self.dest = np.empty_like(image)
-
-            # we have initialized
-            self.is_init = True
-
-        h, w, _ = image.shape
-
-        # write current image
-        cl.enqueue_copy(self.queue, self.src_buf, image)
-
-        self.prg.convert(self.queue, (w, h), None, self.src_buf, self.dest_buf, np.int32(w), np.int32(h))
-        
-        # read back image
-        cl.enqueue_copy(self.queue, self.dest, self.dest_buf)
-
-        return self.dest, data
+        kernel = self.get("scale", 1.0) * np.array(self.get("kernel", [[1]]), dtype=np.float32)
+        for d in range(3):
+            image[:,:,d] = (256.0 * np.clip(sp.ndimage.convolve(image[:,:,d] / 256.0, kernel, mode='constant', cval=0.0), 0.0, 1.0)).astype(np.uint8)
+        return image, data
 
 
 class OpenCLConvolve(VPL):
@@ -374,7 +273,9 @@ class OpenCLConvolve(VPL):
     def register(self):
         pass
 
+
     def process(self, pipe, image, data):
+        import pyopencl as cl
 
         if not hasattr(self, "is_init"):
             # loop unrolling on mask
@@ -403,11 +304,10 @@ class OpenCLConvolve(VPL):
             for i in range(0, mask.shape[0]):
                 for j in range(0, mask.shape[1]):
                     if mask[j, i] != 0:
-                        print(i, j, mask[j, i])
                         cur_cb = single_val_codeblock.format(i=i - mask.shape[0] // 2, j=mask.shape[0] // 2 - j, MASK_VAL=mask[j, i])
                         kernel_unfolded += cur_cb
 
-            print (kernel_unfolded)
+            #print (kernel_unfolded)
 
             OPENCL_SRC="""
 __kernel void convert(__global __read_only uchar * img_in, __global __write_only uchar * img_out, int w, int h) {{

@@ -20,7 +20,16 @@ can also find a copy at http://www.gnu.org/licenses/.
 
 """
 
+
 __all__ = ["all", "defines", "basic", "io", "streaming", "fun"]
+
+
+try:
+    from vpl import opencl
+    __all__ += ["opencl"]
+except:
+    # do nothing, opencl not supported
+    pass
 
 from vpl.defines import VPL, cv2, Pipeline
 from vpl import basic
@@ -28,7 +37,6 @@ from vpl import fun
 from vpl import streaming
 from vpl import io
 from vpl import util
-
 
 from enum import Enum
 import time

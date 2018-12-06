@@ -14,16 +14,17 @@ import random
 
 class CoolChannelOffset(VPL):
 
+    def register(self):
+        pass
+
     def process(self, pipe, image, data):
         h, w, nch = image.shape
 
-        xoff_gen = self.get("xoff", lambda i: 8 * i)
-        yoff_gen = self.get("yoff", lambda i: -2.5 * i)
-
+        #offset_gen = self.get("offset", lambda i: i * (8, -2.5))
+        offset_gen = lambda i: (8 * i, -2.5 * i)
         for i in range(nch):
-            xoff = xoff_gen * i if type(xoff_gen) == int else int(xoff_gen(i)) 
-            yoff = yoff_gen * i if type(yoff_gen) == int else int(yoff_gen(i)) 
-            image[:,:,i] = np.roll(np.roll(image[:,:,i], yoff, 0), xoff, 1)
+            offset = offset_gen * i if type(offset_gen) in (tuple, list) else offset_gen(i)
+            image[:,:,i] = np.roll(np.roll(image[:,:,i], int(offset[1]), 0), int(offset[0]), 1)
 
         return image, data
 
@@ -331,7 +332,6 @@ class Transform(VPL):
         # ex: func=lambda x, y, w, h: (w * np.log(x+1) / np.log(w), h * np.log(y+1) / np.log(h))
         # this does log transofmr
         # ex: func=lambda x, y, w, h: (x , )
-
 
         map_x, map_y = np.fromfunction(lambda y, x: func(x, y, w, h), (h, w), dtype=np.float32)
 

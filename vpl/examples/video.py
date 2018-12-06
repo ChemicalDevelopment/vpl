@@ -12,6 +12,9 @@ parser = argparse.ArgumentParser(description='video processor')
 parser.add_argument("source", nargs='?', default=0, help='camera source (can be video file as well) default is \'0\'')
 parser.add_argument("-np", "--no-prop", action='store_true', help='use this flag to not use CameraProperties')
 parser.add_argument("-i-s", "--input-size", default=None, type=str,  help="input size (WxH) to scale/request input as")
+
+parser.add_argument("-i-o", "--input-output", default=None, help='output the input (without effects on it) to this location')
+
 parser.add_argument("-loop", action='store_true', help='loop playback (i.e. play video over and over again)')
 
 
@@ -67,10 +70,13 @@ vsrc["properties"] = cam_props
 
 pipe.add_vpl(vsrc)
 
-
 if args.input_size is not None:
     split = args.input_size.split("x")
-    pipe.add_vpl(Resize(w=int(split[0]), h=int(split[1])))
+    pipe.add_vpl(Resize(size=(int(split[0]), int(split[1]))))
+
+if args.input_output is not None:
+    # TODO: do this better in VideoSource
+    pipe.add_vpl(VideoSaver(path=args.input_output, is_async=False))
 
 # processing here
 

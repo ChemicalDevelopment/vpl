@@ -11,4 +11,5 @@ from vpl.io import *
 from vpl.streaming import *
 from vpl.fun import *
 from vpl.util import *
+from vpl.opencl import *
 
