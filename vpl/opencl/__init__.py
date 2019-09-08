@@ -5,9 +5,17 @@ OpenCL interface
 """
 
 import vpl
-import pyopencl as cl
-mf = cl.mem_flags
-import numpy as np
+
+
+enabled = False
+try:
+    import pyopencl as cl
+    mf = cl.mem_flags
+    import numpy as np
+    enabled = True
+except:
+    enabled = False
+
 
 
 def create_system(code_src, platform=None, device=None):
@@ -95,11 +103,6 @@ __kernel void resize_NN(
 
             return self.dest, data
             
-
-
-
-
-
 
 class ConvolveCL(vpl.VPL):
 
