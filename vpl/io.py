@@ -25,7 +25,6 @@ class VideoSource(VPL):
     """
 
     Usage: VideoSource(source=0)
--rw-rw-r-- 1 cade cade 36M Feb 17 00:20 ../src/0.avi
 
     optional arguments:
 
@@ -58,7 +57,7 @@ class VideoSource(VPL):
             _, _img = self.video_reader.read()
 
             if not _:
-                self.images_idx = 0
+                self.images_idx = -1
                 self.images += [None]
             else:
                 self.images += [_img]
@@ -228,7 +227,7 @@ class VideoSource(VPL):
         if hasattr(self, "cap_fps") and self.cap_fps is not None and self.cap_fps > 0:            
             data["cap_fps"] = self.cap_fps
         
-        if image is None:
+        if image is None or self.images_idx < 0:
             pipe.quit()
 
         return image, data
@@ -271,10 +270,10 @@ class VideoSaver(VPL):
 
                 #r = cv2.imencode(".png", image)[1]
 
-                self.video_proc.stdin.write(image.tostring())
-                self.video_proc.stdin.flush()
+                #self.video_proc.stdin.write(image.tostring())
+                #self.video_proc.stdin.flush()
 
-                #self.video_out.write(image)
+                self.video_out.write(image)
                 self.last_time = time.time()
 
         elif self._type == "sequence":
@@ -351,10 +350,10 @@ class VideoSaver(VPL):
                 ]
 
                 #print (" ".join(cmd))
-                self.video_proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+                #self.video_proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
 
                 # using opencv
-                #self.video_out = cv2.VideoWriter(self["path"], self.fourcc, self.fps, (w, h))
+                self.video_out = cv2.VideoWriter(self["path"], self.fourcc, self.fps, (w, h))
                 
 
             else:

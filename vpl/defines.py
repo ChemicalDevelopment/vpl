@@ -64,7 +64,8 @@ valid_video_formats = [
     "mp4",
     "mpeg",
     "flv",
-    "mts"
+    "mts",
+    "webm"
 ]
 
 class CameraProperties:

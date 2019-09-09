@@ -30,6 +30,7 @@ test.py
 *.flac
 *.mp4
 *.gif
+*.webm
 
 
 !chaudio/samples/*.wav
