@@ -1,10 +1,10 @@
 """
 
-Copyright 2018 LN STEMpunks & ChemicalDevelopment
+Copyright 2020 ChemicalDevelopment
 
-  This file is part of the punkvision project
+  This file is part of the vpl project
 
-  punkvision, punkvision Documentation, and any other resources in this 
+  vpl, vpl Documentation, and any other resources in this 
 project are free software; you are free to redistribute it and/or modify 
 them under  the terms of the GNU General Public License; either version 
 3 of the license, or any later version.
@@ -17,13 +17,13 @@ FOR A PARTICULAR PURPOSE. See the GPLv3 or email at
   Here is a copy of the GPL v3, which this software is licensed under. You 
 can also find a copy at http://www.gnu.org/licenses/.
 
-
 """
 
-
+# other submodules
 __all__ = ["all", "defines", "basic", "io", "streaming", "fun"]
 
 
+# attempt to load OpenCL library
 try:
     from vpl import opencl
     __all__ += ["opencl"]

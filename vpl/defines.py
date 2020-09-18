@@ -1,3 +1,8 @@
+""" defines.py - definitions of datatypes/functionality
+
+
+"""
+
 
 import time
 
@@ -16,7 +21,6 @@ import inspect
 definition of all opencv cap props
 
 """
-
 
 cap_prop_lookup = {
 
@@ -95,17 +99,9 @@ class CameraProperties:
         self.props[key] = val
 
 
-"""
-
-vpl = video pipe line
-
-Think of it similar to how VSTs handle audio, this is a plugin for video
+""" Pipeline - describes a set of transformations using effects and/or other Pipelines
 
 """
-
-import cv2
-
-
 class Pipeline:
 
     def __init__(self, name=None, chain=None):
@@ -129,7 +125,7 @@ class Pipeline:
     def __str__(self):
         ret = "Pipeline("
 
-        if self.name != None:
+        if self.name:
             ret += "name='%s', " % self.name
 
         ret += "[ \n"
@@ -147,6 +143,7 @@ class Pipeline:
 
         """
         self.is_quit = True
+
 
 
     def add_vpl(self, vpl):

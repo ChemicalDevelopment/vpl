@@ -6,14 +6,11 @@ basic operations
 
 from vpl import VPL
 
-import numpy as np
-
+import time
 import math
 
 import cv2
-
-import time
-
+import numpy as np
 import scipy as sp
 from scipy import signal, ndimage
 
